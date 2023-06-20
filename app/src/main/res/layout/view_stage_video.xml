@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <variable
+            name="stage"
+            type="com.amazon.ivs.stagesrealtime.ui.stage.models.StageUIModel" />
+
+        <variable
+            name="isCenterStage"
+            type="Boolean" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- PK VIEWS START -->
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_pk"
+            android:visibility="@{stage.isPKMode ? View.VISIBLE : View.GONE}" />
+
+        <LinearLayout
+            android:id="@+id/pk_container"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/size_pk_height"
+            android:layout_marginTop="@dimen/margin_gigantic"
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible">
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="1dp"
+                android:layout_weight="1"
+                android:background="@color/black"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/black_light"
+                    android:contentDescription="@null"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_video_off"
+                    android:visibility="@{stage.isCreatorVideoOff ? View.VISIBLE : View.GONE}" />
+
+                <ProgressBar
+                    android:layout_width="@dimen/size_small"
+                    android:layout_height="@dimen/size_small"
+                    android:layout_gravity="center"
+                    android:indeterminateDrawable="@drawable/bg_progress_bar"
+                    android:visibility="@{(stage.creatorVideo == null &amp;&amp; !stage.isCreatorVideoOff) ? View.VISIBLE : View.GONE}" />
+
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="1dp"
+                android:layout_weight="1"
+                android:background="@color/black"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <FrameLayout
+                    android:id="@+id/pk_guest_video"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="@{stage.isGuestVideoOff ? View.GONE : View.VISIBLE}" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/black_light"
+                    android:contentDescription="@null"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_video_off"
+                    android:visibility="@{stage.isGuestVideoOff ? View.VISIBLE : View.GONE}" />
+
+                <ProgressBar
+                    android:layout_width="@dimen/size_small"
+                    android:layout_height="@dimen/size_small"
+                    android:layout_gravity="center"
+                    android:indeterminateDrawable="@drawable/bg_progress_bar"
+                    android:visibility="@{(stage.guestVideo == null &amp;&amp; !stage.isGuestVideoOff) ? View.VISIBLE : View.GONE}" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <!-- Animation start -->
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/anim_guideline"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="@integer/pk_mode_guideline_percent" />
+
+        <FrameLayout
+            android:id="@+id/anim_left"
+            android:layout_width="0dp"
+            android:layout_height="18dp"
+            android:layout_marginTop="@dimen/margin_tiny"
+            app:layout_constraintEnd_toStartOf="@id/anim_guideline"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/pk_container">
+
+            <View
+                android:id="@+id/anim_bg_left"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/anim_bg_left" />
+
+            <ImageView
+                android:id="@+id/anim_sparks_left_1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop"
+                android:src="@drawable/anim_sparks" />
+
+            <ImageView
+                android:id="@+id/anim_sparks_left_2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop"
+                android:src="@drawable/anim_sparks" />
+
+            <View
+                android:id="@+id/anim_sparks_overlay_left"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/anim_beam" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/anim_bg_left_transparent" />
+
+            <View
+                android:id="@+id/anim_bg_left_blink"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:alpha="0"
+                android:background="@color/red_variant_light" />
+
+            <View
+                android:id="@+id/anim_left_flare"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:background="@drawable/anim_bg_overlay_left" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/anim_right"
+            android:layout_width="0dp"
+            android:layout_height="18dp"
+            android:layout_marginTop="@dimen/margin_tiny"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/anim_guideline"
+            app:layout_constraintTop_toBottomOf="@id/pk_container">
+
+            <View
+                android:id="@+id/anim_bg_right"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/anim_bg_right" />
+
+            <ImageView
+                android:id="@+id/anim_sparks_right_1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:background="@drawable/anim_sparks"
+                android:contentDescription="@null"
+                android:rotation="180" />
+
+            <ImageView
+                android:id="@+id/anim_sparks_right_2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:background="@drawable/anim_sparks"
+                android:contentDescription="@null"
+                android:rotation="180" />
+
+            <View
+                android:id="@+id/anim_sparks_overlay_right"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/anim_beam"
+                android:rotation="180" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/anim_bg_right_transparent" />
+
+            <View
+                android:id="@+id/anim_bg_right_blink"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:alpha="0"
+                android:background="@color/blue_variant_light" />
+
+            <View
+                android:id="@+id/anim_right_flare"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/anim_bg_overlay_right" />
+
+        </FrameLayout>
+
+        <ImageView
+            android:id="@+id/anim_laser"
+            android:layout_width="48dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="-11dp"
+            android:layout_marginBottom="-11dp"
+            android:contentDescription="@null"
+            android:scaleType="fitXY"
+            android:src="@drawable/anim_laser_syne"
+            android:translationZ="@dimen/translation_tiny"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/pk_container"
+            app:layout_constraintEnd_toEndOf="@id/pk_container"
+            app:layout_constraintStart_toStartOf="@id/pk_container"
+            app:layout_constraintTop_toTopOf="@id/pk_container" />
+
+        <ImageView
+            android:id="@+id/anim_laser_line"
+            android:layout_width="54dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="-12dp"
+            android:layout_marginBottom="-12dp"
+            android:contentDescription="@null"
+            android:rotationY="0"
+            android:scaleType="fitXY"
+            android:src="@drawable/anim_laser_line"
+            android:translationZ="@dimen/translation_tiny"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/pk_container"
+            app:layout_constraintEnd_toEndOf="@id/pk_container"
+            app:layout_constraintStart_toStartOf="@id/pk_container"
+            app:layout_constraintTop_toTopOf="@id/pk_container" />
+
+        <ImageView
+            android:id="@+id/anim_laser_small"
+            android:layout_width="48dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="1dp"
+            android:layout_marginBottom="1dp"
+            android:contentDescription="@null"
+            android:rotationY="150"
+            android:scaleType="fitXY"
+            android:src="@drawable/anim_laser_syne_wide"
+            android:translationZ="@dimen/translation_tiny"
+            android:visibility="@{stage.isPKMode &amp;&amp; isCenterStage ? View.VISIBLE : View.GONE}"
+            app:layout_constraintBottom_toBottomOf="@id/anim_right"
+            app:layout_constraintEnd_toEndOf="@id/anim_guideline"
+            app:layout_constraintStart_toStartOf="@id/anim_guideline"
+            app:layout_constraintTop_toTopOf="@id/anim_left" />
+
+        <ImageView
+            android:layout_width="52dp"
+            android:layout_height="0dp"
+            android:contentDescription="@null"
+            android:rotationY="0"
+            android:scaleType="fitXY"
+            android:src="@drawable/anim_laser_line_wide"
+            android:translationZ="@dimen/translation_tiny"
+            android:visibility="@{stage.isPKMode &amp;&amp; isCenterStage ? View.VISIBLE : View.GONE}"
+            app:layout_constraintBottom_toBottomOf="@id/anim_right"
+            app:layout_constraintEnd_toEndOf="@id/anim_guideline"
+            app:layout_constraintStart_toStartOf="@id/anim_guideline"
+            app:layout_constraintTop_toTopOf="@id/anim_left" />
+
+        <androidx.constraintlayout.widget.Group
+            android:id="@+id/anim_group"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:constraint_referenced_ids="anim_left,anim_right"
+            tools:visibility="visible" />
+
+        <!-- Animation end -->
+
+        <ImageView
+            android:id="@+id/pk_icon"
+            android:layout_width="@dimen/size_pk"
+            android:layout_height="@dimen/size_pk"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_pk"
+            android:translationZ="@dimen/translation_small"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/pk_container"
+            app:layout_constraintEnd_toEndOf="@id/pk_container"
+            app:layout_constraintStart_toStartOf="@id/pk_container"
+            app:layout_constraintTop_toTopOf="@id/pk_container"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/pk_mode_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/margin_tiny"
+            android:background="@drawable/bg_round_black"
+            android:paddingHorizontal="@dimen/padding_tiny"
+            android:paddingVertical="1dp"
+            android:textColor="@color/white"
+            android:translationZ="@dimen/translation_tiny"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/pk_container"
+            app:layout_constraintEnd_toEndOf="@id/pk_container"
+            app:layout_constraintStart_toStartOf="@id/pk_container"
+            tools:text="15:00"
+            tools:visibility="visible" />
+
+        <!-- PK VIEWS END -->
+
+        <FrameLayout
+            android:id="@+id/creator_video"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="@{stage.isCreatorVideoOff ? View.GONE : View.VISIBLE}"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/black_light"
+            android:contentDescription="@null"
+            android:scaleType="center"
+            android:src="@drawable/ic_video_off"
+            android:visibility="@{stage.isCreatorVideoOff &amp;&amp; !stage.isPKMode ? View.VISIBLE : View.GONE}"
+            tools:visibility="gone" />
+
+        <ProgressBar
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:indeterminateDrawable="@drawable/bg_progress_bar"
+            android:visibility="@{stage.showGlobalProgressBar() ? View.VISIBLE : View.GONE}"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="gone" />
+
+        <FrameLayout
+            android:id="@+id/guest_layout"
+            style="@style/GuestViewStyle"
+            android:layout_width="@dimen/size_guest_width"
+            android:layout_height="@dimen/size_guest_height"
+            android:layout_marginTop="@dimen/margin_huge"
+            android:layout_marginEnd="@dimen/margin_medium"
+            android:background="@drawable/bg_square_black_gray_border"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="gone">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="1dp"
+                app:cardBackgroundColor="@color/black"
+                app:cardCornerRadius="@dimen/radius_normal">
+
+                <FrameLayout
+                    android:id="@+id/guest_video"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="@{stage.isGuestVideoOff ? View.GONE : View.VISIBLE}" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/black_light"
+                    android:contentDescription="@null"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_video_off"
+                    android:visibility="@{stage.isGuestVideoOff ? View.VISIBLE : View.GONE}" />
+
+                <ProgressBar
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:indeterminateDrawable="@drawable/bg_progress_bar"
+                    android:visibility="@{(stage.guestVideo == null &amp;&amp; !stage.isGuestVideoOff) ? View.VISIBLE : View.GONE}" />
+
+            </androidx.cardview.widget.CardView>
+
+        </FrameLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/height_gradient_down"
+            android:background="@drawable/bg_gradient_transparent_down"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/height_gradient_up"
+            android:background="@drawable/bg_gradient_transparent_up"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <import type="android.view.View" />
+        <variable
+            name="stageCount"
+            type="Integer" />
+    </data>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="@{stageCount == 0 ? View.VISIBLE : View.GONE}"
+        app:cardBackgroundColor="@color/black_light"
+        app:cardCornerRadius="@dimen/radius_huge">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/height_gradient_down"
+                android:background="@drawable/bg_gradient_transparent_down"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/height_gradient_up"
+                android:background="@drawable/bg_gradient_transparent_up"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <ProgressBar
+                android:layout_width="@dimen/size_normal"
+                android:layout_height="@dimen/size_normal"
+                android:indeterminateDrawable="@drawable/bg_progress_bar_icon"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.cardview.widget.CardView>
+
+</layout>

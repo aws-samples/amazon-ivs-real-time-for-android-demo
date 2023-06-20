@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <import type="android.view.View" />
+        <variable
+            name="stages"
+            type="com.amazon.ivs.stagesrealtime.ui.stage.models.StageListModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:keepScreenOn="true">
+
+        <androidx.constraintlayout.motion.widget.MotionLayout
+            android:id="@+id/motion_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layoutDescription="@xml/stage_scene">
+
+            <include
+                android:id="@+id/stage_top"
+                layout="@layout/view_stage_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:isCenterStage="@{false}"
+                app:layout_constraintBottom_toTopOf="@id/stage_center"
+                app:layout_constraintEnd_toEndOf="@id/stage_center"
+                app:layout_constraintStart_toStartOf="@id/stage_center"
+                app:stage="@{stages.stageTop}" />
+
+            <include
+                android:id="@+id/stage_center"
+                layout="@layout/view_stage_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:isCenterStage="@{true}"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:stage="@{stages.stageCenter}" />
+
+            <include
+                android:id="@+id/stage_bottom"
+                layout="@layout/view_stage_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:isCenterStage="@{false}"
+                app:layout_constraintEnd_toEndOf="@id/stage_center"
+                app:layout_constraintStart_toStartOf="@id/stage_center"
+                app:layout_constraintTop_toBottomOf="@id/stage_center"
+                app:stage="@{stages.stageBottom}" />
+
+            <include
+                android:id="@+id/stage_bottom_dummy"
+                layout="@layout/view_stage_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:isCenterStage="@{false}"
+                app:layout_constraintEnd_toEndOf="@id/stage_bottom"
+                app:layout_constraintStart_toStartOf="@id/stage_bottom"
+                app:layout_constraintTop_toBottomOf="@id/stage_bottom"
+                app:stage="@{stages.stageDummy}" />
+
+        </androidx.constraintlayout.motion.widget.MotionLayout>
+
+        <include
+            android:id="@+id/stage_buttons"
+            layout="@layout/view_stage_buttons"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:stage="@{stages.stageCenter}" />
+
+        <include
+            android:id="@+id/pk_mode_winner_view"
+            layout="@layout/view_pk_mode_winner"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <include
+            android:id="@+id/stages_empty"
+            layout="@layout/view_stages_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:stageCount="@{stages.stageCount}" />
+
+        <ImageView
+            android:id="@+id/back_button"
+            android:layout_width="@dimen/size_normal"
+            android:layout_height="@dimen/size_normal"
+            android:layout_marginTop="@dimen/margin_large"
+            android:layout_marginStart="@dimen/margin_normal"
+            android:background="@drawable/bg_button_round_mask"
+            android:contentDescription="@string/refresh_username"
+            android:padding="@dimen/padding_small"
+            android:src="@drawable/ic_back"
+            android:translationZ="100dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <include
+            android:id="@+id/loading_view"
+            layout="@layout/view_loading"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

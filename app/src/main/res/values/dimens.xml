@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <dimen name="padding_large">32dp</dimen>
+    <dimen name="padding_big">22dp</dimen>
+    <dimen name="padding_medium">16dp</dimen>
+    <dimen name="padding_normal">12dp</dimen>
+    <dimen name="padding_small">10dp</dimen>
+    <dimen name="padding_tiny">8dp</dimen>
+    <dimen name="padding_micro">4dp</dimen>
+    <dimen name="padding_null">0dp</dimen>
+
+    <dimen name="margin_gigantic">128dp</dimen>
+    <dimen name="margin_enormous">96dp</dimen>
+    <dimen name="margin_huge">60dp</dimen>
+    <dimen name="margin_big">32dp</dimen>
+    <dimen name="margin_large">20dp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
+    <dimen name="margin_normal">12dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_tiny">4dp</dimen>
+    <dimen name="margin_tiny_inverted">-4dp</dimen>
+    <dimen name="margin_medium_inverted">-16dp</dimen>
+
+    <dimen name="text_size_huge">42sp</dimen>
+    <dimen name="text_size_big">22sp</dimen>
+    <dimen name="text_size_button">18sp</dimen>
+    <dimen name="text_size_medium">16sp</dimen>
+    <dimen name="text_size_normal">14sp</dimen>
+
+    <dimen name="radius_huge">32dp</dimen>
+    <dimen name="radius_big">24dp</dimen>
+    <dimen name="radius_normal">18dp</dimen>
+    <dimen name="radius_small">10dp</dimen>
+
+    <dimen name="size_big">120dp</dimen>
+    <dimen name="size_small">24dp</dimen>
+    <dimen name="size_avatar">48dp</dimen>
+    <dimen name="size_avatar_border">2dp</dimen>
+    <dimen name="size_normal">42dp</dimen>
+    <dimen name="size_pk">84dp</dimen>
+    <dimen name="size_seat">94dp</dimen>
+    <dimen name="size_seat_border">2dp</dimen>
+    <dimen name="size_chat">210dp</dimen>
+
+    <dimen name="size_guest_width">140dp</dimen>
+    <dimen name="size_guest_height">200dp</dimen>
+    <dimen name="size_pk_height">294dp</dimen>
+
+    <dimen name="width_avatar_ring">2dp</dimen>
+    <dimen name="height_gradient_down">112dp</dimen>
+    <dimen name="height_gradient_up">400dp</dimen>
+    <dimen name="stroke_width_normal">2dp</dimen>
+    <dimen name="elevation_normal">4dp</dimen>
+    <dimen name="size_avatar_ring">54dp</dimen>
+
+    <dimen name="heart_anim_bezier_x_rand">40dp</dimen>
+    <dimen name="heart_anim_init_x">50dp</dimen>
+    <dimen name="heart_anim_init_y">25dp</dimen>
+    <dimen name="heart_anim_length">100dp</dimen>
+    <dimen name="heart_anim_length_rand">150dp</dimen>
+    <dimen name="heart_anim_x_point_factor">30dp</dimen>
+    <dimen name="heart_size_height">24dp</dimen>
+    <dimen name="heart_size_width">24dp</dimen>
+    <dimen name="heart_anim_y_offset">-30dp</dimen>
+
+    <dimen name="translation_normal">100dp</dimen>
+    <dimen name="translation_big">200dp</dimen>
+    <dimen name="translation_small">10dp</dimen>
+    <dimen name="translation_tiny">5dp</dimen>
+
+    <item name="pk_mode_guideline_percent" format="float" type="integer">0.5</item>
+
+    <dimen name="slider_track_height">7dp</dimen>
+    <dimen name="slider_thumb_radius">8dp</dimen>
+    <dimen name="mtrl_slider_track_side_padding" tools:ignore="PrivateResource">17dp</dimen>
+
+    <integer name="bitrate_step">50000</integer>
+    <integer name="bitrate_max">900000</integer>
+    <integer name="bitrate_min">100000</integer>
+    <integer name="bitrate_default">400000</integer>
+</resources>

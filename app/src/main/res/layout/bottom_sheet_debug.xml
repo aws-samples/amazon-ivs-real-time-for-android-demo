@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <LinearLayout xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        tools:layout_gravity="bottom">
+
+        <View
+            android:id="@+id/top_indent"
+            android:layout_width="match_parent"
+            android:layout_height="84dp"
+            android:background="@color/transparent" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_square_white_dark"
+            android:clipToPadding="false"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="@dimen/margin_medium">
+
+            <TextView
+                android:id="@+id/title"
+                style="@style/TextStyle.Title.Subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_small"
+                android:layout_marginBottom="@dimen/margin_tiny"
+                android:text="@string/debug_data"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/description"
+                style="@style/TextStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/copy_to_clipboard_description"
+                android:textSize="@dimen/text_size_normal"
+                app:layout_constraintEnd_toEndOf="@id/title"
+                app:layout_constraintStart_toStartOf="@id/title"
+                app:layout_constraintTop_toBottomOf="@id/title" />
+
+            <LinearLayout
+                android:id="@+id/participant_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_big"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toTopOf="@id/buttons_layout"
+                app:layout_constraintTop_toBottomOf="@id/description">
+
+                <LinearLayout
+                    android:id="@+id/quality_values"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <include
+                        android:id="@+id/stream_quality"
+                        layout="@layout/item_debug_data"
+                        app:dataName="@{@string/stream_quality}"
+                        app:dataValue='@{"-"}' />
+
+                    <include
+                        android:id="@+id/cpu_time"
+                        layout="@layout/item_debug_data"
+                        app:dataName='@{@string/cpu_limited_time}'
+                        app:dataValue='@{"-"}' />
+
+                    <include
+                        android:id="@+id/network_time"
+                        layout="@layout/item_debug_data"
+                        app:dataName="@{@string/network_limited_time}"
+                        app:dataValue='@{"-"}' />
+
+                    <include layout="@layout/view_line_separator" />
+
+                </LinearLayout>
+
+                <include
+                    android:id="@+id/latency"
+                    layout="@layout/item_debug_data"
+                    app:dataName='@{@string/latency}'
+                    app:dataValue='@{"-"}' />
+
+                <include
+                    android:id="@+id/fps"
+                    layout="@layout/item_debug_data"
+                    app:dataName='@{@string/fps}'
+                    app:dataValue='@{"-"}' />
+
+                <include
+                    android:id="@+id/packet_loss"
+                    layout="@layout/item_debug_data"
+                    app:dataName='@{@string/packet_loss}'
+                    app:dataValue='@{"-"}' />
+
+                <include layout="@layout/view_line_separator" />
+
+                <include
+                    layout="@layout/item_debug_data"
+                    app:dataName='@{@string/sdk_version}'
+                    app:dataValue='@{@string/sdk_version_value}' />
+
+            </LinearLayout>
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/guest_layout"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="@dimen/margin_big"
+                android:layout_marginBottom="@dimen/margin_medium"
+                app:layout_constraintBottom_toTopOf="@id/buttons_layout"
+                app:layout_constraintHeight_default="wrap"
+                app:layout_constraintTop_toBottomOf="@id/description"
+                tools:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/streams_data"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                        tools:itemCount="1"
+                        tools:listitem="@layout/item_stream_data" />
+
+                    <include layout="@layout/view_line_separator" />
+
+                    <include
+                        layout="@layout/item_debug_data"
+                        app:dataName='@{@string/sdk_version}'
+                        app:dataValue='@{@string/sdk_version_value}' />
+
+                </LinearLayout>
+
+            </androidx.core.widget.NestedScrollView>
+
+            <LinearLayout
+                android:id="@+id/buttons_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+                <TextView
+                    android:id="@+id/copy_button"
+                    style="@style/ButtonStyle.Gray"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin_normal"
+                    android:text="@string/copy_to_clipboard" />
+
+                <TextView
+                    android:id="@+id/dismiss_button"
+                    style="@style/ButtonStyle.Transparent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dismiss" />
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
+</layout>

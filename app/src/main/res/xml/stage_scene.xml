@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MotionScene
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:motion="http://schemas.android.com/apk/res-auto">
+
+    <Transition
+        android:id="@+id/transition_to_top"
+        motion:constraintSetStart="@+id/state_center"
+        motion:constraintSetEnd="@+id/state_top"
+        motion:duration="@integer/scroll_duration"
+        motion:onTouchUp="autoCompleteToStart">
+        <OnSwipe
+            motion:dragDirection="dragDown"
+            motion:maxAcceleration="@integer/scroll_autocomplete_duration"
+            motion:touchAnchorId="@id/stage_center"
+            motion:touchAnchorSide="middle" />
+    </Transition>
+
+    <Transition
+        android:id="@+id/transition_to_bottom"
+        motion:constraintSetStart="@+id/state_center"
+        motion:constraintSetEnd="@+id/state_bottom"
+        motion:duration="@integer/scroll_duration"
+        motion:onTouchUp="autoCompleteToStart">
+        <OnSwipe
+            motion:dragDirection="dragUp"
+            motion:maxAcceleration="@integer/scroll_autocomplete_duration"
+            motion:touchAnchorId="@id/stage_center"
+            motion:touchAnchorSide="middle" />
+    </Transition>
+
+    <ConstraintSet android:id="@+id/state_center">
+        <Constraint
+            android:id="@id/stage_top"
+            android:alpha="0"
+            motion:layout_constraintEnd_toEndOf="@id/stage_center"
+            motion:layout_constraintBottom_toTopOf="@id/stage_center"
+            motion:layout_constraintStart_toStartOf="@id/stage_center" />
+        <Constraint
+            android:id="@id/stage_center"
+            android:alpha="1"
+            motion:layout_constraintTop_toTopOf="parent"
+            motion:layout_constraintEnd_toEndOf="parent"
+            motion:layout_constraintBottom_toBottomOf="parent"
+            motion:layout_constraintStart_toStartOf="parent" />
+        <Constraint
+            android:id="@id/stage_bottom"
+            android:alpha="0.7"
+            motion:layout_constraintTop_toBottomOf="@id/stage_center"
+            motion:layout_constraintEnd_toEndOf="@id/stage_center"
+            motion:layout_constraintStart_toStartOf="@id/stage_center" />
+        <Constraint
+            android:id="@id/stage_bottom_dummy"
+            android:alpha="0"
+            motion:layout_constraintTop_toBottomOf="@id/stage_bottom"
+            motion:layout_constraintEnd_toEndOf="@id/stage_bottom"
+            motion:layout_constraintStart_toStartOf="@id/stage_bottom" />
+    </ConstraintSet>
+
+    <ConstraintSet android:id="@+id/state_top" motion:deriveConstraintsFrom="@id/state_center">
+        <Constraint
+            android:id="@id/stage_top"
+            android:alpha="1"
+            motion:layout_constraintTop_toTopOf="parent"
+            motion:layout_constraintEnd_toEndOf="parent"
+            motion:layout_constraintBottom_toBottomOf="parent"
+            motion:layout_constraintStart_toStartOf="parent" />
+        <Constraint
+            android:id="@id/stage_center"
+            android:alpha="0.7"
+            motion:layout_constraintTop_toBottomOf="@id/stage_top"
+            motion:layout_constraintEnd_toEndOf="@id/stage_top"
+            motion:layout_constraintStart_toStartOf="@id/stage_top" />
+    </ConstraintSet>
+
+    <ConstraintSet android:id="@+id/state_bottom" motion:deriveConstraintsFrom="@id/state_center">
+        <Constraint
+            android:id="@id/stage_center"
+            android:alpha="0"
+            motion:layout_constraintEnd_toEndOf="@id/stage_bottom"
+            motion:layout_constraintBottom_toTopOf="@id/stage_bottom"
+            motion:layout_constraintStart_toStartOf="@id/stage_bottom"  />
+        <Constraint
+            android:id="@id/stage_bottom"
+            android:alpha="1"
+            motion:layout_constraintTop_toTopOf="parent"
+            motion:layout_constraintEnd_toEndOf="parent"
+            motion:layout_constraintBottom_toBottomOf="parent"
+            motion:layout_constraintStart_toStartOf="parent" />
+        <Constraint
+            android:id="@id/stage_bottom_dummy"
+            android:alpha="0.7"
+            motion:layout_constraintTop_toBottomOf="@id/stage_bottom"
+            motion:layout_constraintEnd_toEndOf="@id/stage_bottom"
+            motion:layout_constraintStart_toStartOf="@id/stage_bottom" />
+    </ConstraintSet>
+
+</MotionScene>

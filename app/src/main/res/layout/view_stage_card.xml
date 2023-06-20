@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <variable
+            name="stage"
+            type="com.amazon.ivs.stagesrealtime.ui.stage.models.StageUIModel" />
+
+        <variable
+            name="isCenterStage"
+            type="Boolean" />
+    </data>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:cardBackgroundColor="@color/black_light"
+        app:cardCornerRadius="@dimen/radius_huge"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <include
+                android:id="@+id/video_stage"
+                layout="@layout/view_stage_video"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:isCenterStage="@{isCenterStage}"
+                app:stage="@{stage}"
+                tools:layout_editor_absoluteX="0dp"
+                tools:layout_editor_absoluteY="0dp" />
+
+            <include
+                android:id="@+id/audio_stage"
+                layout="@layout/view_stage_audio"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:stage="@{stage}" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.cardview.widget.CardView>
+
+</layout>

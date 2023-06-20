@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation_main"
+    app:startDestination="@id/navigation_welcome">
+
+    <fragment
+        android:id="@+id/navigation_welcome"
+        android:name="com.amazon.ivs.stagesrealtime.ui.welcome.WelcomeFragment"
+        tools:layout="@layout/fragment_welcome">
+        <action
+            android:id="@+id/to_bottom_sheet"
+            app:destination="@id/navigation_welcome_bottom_sheet" />
+        <action
+            android:id="@+id/to_create_join_stage"
+            app:destination="@id/navigation_create_join_stage" />
+        <argument
+            android:name="isSignedOut"
+            android:defaultValue="false"
+            app:argType="boolean" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_create_join_stage"
+        android:name="com.amazon.ivs.stagesrealtime.ui.welcome.CreateJoinStageFragment"
+        tools:layout="@layout/fragment_create_join_stage">
+        <action
+            android:id="@+id/to_bottom_sheet"
+            app:destination="@id/navigation_welcome_bottom_sheet" />
+        <action
+            android:id="@+id/to_stage"
+            app:destination="@id/navigation_stage"
+            app:enterAnim="@anim/slide_up_from_off_screen"
+            app:exitAnim="@anim/slide_up_to_off_screen"
+            app:popEnterAnim="@anim/slide_down_from_off_screen"
+            app:popExitAnim="@anim/slide_down_to_off_screen" />
+        <action
+            android:id="@+id/to_welcome"
+            app:destination="@id/navigation_welcome" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_stage"
+        android:name="com.amazon.ivs.stagesrealtime.ui.stage.StageFragment"
+        tools:layout="@layout/fragment_stage">
+        <action
+            android:id="@+id/to_join_bottom_sheet"
+            app:destination="@id/navigation_join_stage_bottom_sheet" />
+        <action
+            android:id="@+id/to_leave_delete_stage"
+            app:destination="@+id/navigation_leave_delete_stage_bottom_sheet" />
+        <argument
+            android:name="mode"
+            android:defaultValue="VIEWER"
+            app:argType="com.amazon.ivs.stagesrealtime.repository.models.ParticipantMode" />
+        <argument
+            android:name="createMode"
+            android:defaultValue="NONE"
+            app:argType="com.amazon.ivs.stagesrealtime.repository.models.CreateStageMode" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_scanner"
+        android:name="com.amazon.ivs.stagesrealtime.ui.welcome.ScannerFragment"
+        tools:layout="@layout/fragment_scanner" />
+
+    <dialog
+        android:id="@+id/navigation_welcome_bottom_sheet"
+        android:name="com.amazon.ivs.stagesrealtime.ui.welcome.WelcomeBottomSheet"
+        tools:layout="@layout/bottom_sheet_welcome">
+        <action
+            android:id="@+id/to_scanner"
+            app:destination="@+id/navigation_scanner" />
+        <action
+            android:id="@+id/to_create_join_stage"
+            app:destination="@id/navigation_create_join_stage" />
+        <argument
+            android:name="mode"
+            android:defaultValue="ENTER_CODE"
+            app:argType="com.amazon.ivs.stagesrealtime.ui.welcome.models.WelcomeSheetMode" />
+    </dialog>
+
+    <dialog
+        android:id="@+id/navigation_join_stage_bottom_sheet"
+        android:name="com.amazon.ivs.stagesrealtime.ui.stage.JoinStageBottomSheet"
+        tools:layout="@layout/bottom_sheet_join_stage" />
+
+    <dialog
+        android:id="@+id/navigation_leave_delete_stage_bottom_sheet"
+        android:name="com.amazon.ivs.stagesrealtime.ui.stage.LeaveDeleteStageBottomSheet"
+        tools:layout="@layout/bottom_sheet_leave_delete_stage">
+        <action
+            android:id="@+id/to_create_join_stage"
+            app:destination="@id/navigation_create_join_stage" />
+        <argument
+            android:name="mode"
+            android:defaultValue="LEAVE"
+            app:argType="com.amazon.ivs.stagesrealtime.ui.stage.models.LeaveDeleteStageMode" />
+        <argument
+            android:name="shouldCloseFeed"
+            android:defaultValue="false"
+            app:argType="boolean" />
+        <argument
+            android:name="shouldDisconnectAndClearResources"
+            android:defaultValue="false"
+            app:argType="boolean" />
+    </dialog>
+
+    <dialog
+        android:id="@+id/navigation_debug_bottom_sheet"
+        android:name="com.amazon.ivs.stagesrealtime.ui.stage.DebugBottomSheet"
+        tools:layout="@layout/bottom_sheet_debug" />
+
+</navigation>
