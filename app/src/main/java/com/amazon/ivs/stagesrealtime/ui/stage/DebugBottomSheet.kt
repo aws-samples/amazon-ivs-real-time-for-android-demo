@@ -7,7 +7,7 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import com.amazon.ivs.stagesrealtime.R
-import com.amazon.ivs.stagesrealtime.common.extensions.collect
+import com.amazon.ivs.stagesrealtime.common.extensions.collectLatestWithLifecycle
 import com.amazon.ivs.stagesrealtime.common.extensions.firstCharUpperCase
 import com.amazon.ivs.stagesrealtime.common.extensions.formatStringOrEmpty
 import com.amazon.ivs.stagesrealtime.common.extensions.setVisibleOr
@@ -15,6 +15,7 @@ import com.amazon.ivs.stagesrealtime.common.viewBinding
 import com.amazon.ivs.stagesrealtime.databinding.BottomSheetDebugBinding
 import com.amazon.ivs.stagesrealtime.ui.stage.adapters.RTCDataAdapter
 import com.amazon.ivs.stagesrealtime.ui.stage.models.RTCDataUIItemModel
+import com.amazonaws.ivs.broadcast.BroadcastSession
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -47,6 +48,7 @@ class DebugBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_debug) 
 
             streamsData.adapter = adapter
             streamsData.itemAnimator = null
+            sdkVersion.dataValue = BroadcastSession.getVersion()
             dismissButton.setOnClickListener { dismissNow() }
             copyButton.setOnClickListener {
                 clipboard.setPrimaryClip(ClipData.newPlainText("RTC stats", lastRawRTSStats))
@@ -57,7 +59,7 @@ class DebugBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_debug) 
             }
         }
 
-        collect(viewModel.rtcData) { data ->
+        collectLatestWithLifecycle(viewModel.rtcData) { data ->
             Timber.d("RTC data received: \n$data")
             lastRawRTSStats = data.rawRTCStats ?: ""
             with(binding) {
@@ -69,10 +71,11 @@ class DebugBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_debug) 
                 packetLoss.dataValue = data.packetLoss?.let {
                     String.format(getString(R.string.percentage_template), it)
                 } ?: "-"
+                sdkVersionParticipant.dataValue = data.sdkVersion
             }
         }
 
-        collect(viewModel.rtcDataList) { dataList ->
+        collectLatestWithLifecycle(viewModel.rtcDataList) { dataList ->
             Timber.d("RTC data list received: \n$dataList")
             adapter.submitList(dataList)
             lastRawRTSStats = dataList.asStringData()

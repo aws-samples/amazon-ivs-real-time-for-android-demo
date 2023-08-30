@@ -3,11 +3,15 @@ package com.amazon.ivs.stagesrealtime.repository.stage
 import android.view.View
 import com.amazon.ivs.stagesrealtime.repository.models.UserAvatar
 
+/**
+ * A collection of events that can be triggered by the stage to deliver changes
+ * to the UI.
+ */
 sealed interface StageEvent {
-    object StageGone : StageEvent
-    object CreatorLeft : StageEvent
-    object GuestLeft : StageEvent
-    object GuestSpeakingStateUpdated : StageEvent
+    data object StageGone : StageEvent
+    data object CreatorLeft : StageEvent
+    data object GuestLeft : StageEvent
+    data object GuestSpeakingStateUpdated : StageEvent
     data class CreatorJoined(
         val participantId: String,
         val isAudioOff: Boolean,

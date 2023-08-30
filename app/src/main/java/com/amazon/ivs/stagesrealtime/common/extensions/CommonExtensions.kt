@@ -1,6 +1,9 @@
 package com.amazon.ivs.stagesrealtime.common.extensions
 
+import androidx.datastore.core.DataStore
+import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.amazon.ivs.stagesrealtime.repository.models.PKModeScore
+import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,3 +44,7 @@ fun Map<String, String>.asPKModeScore(hostId: String, shouldResetScore: Boolean 
         shouldResetScore = shouldResetScore
     )
 }
+
+suspend fun DataStore<AppSettings>.getUserAvatar() = data.first().userAvatar
+suspend fun DataStore<AppSettings>.getStageId() = data.first().stageId
+suspend fun DataStore<AppSettings>.getCustomerCode() = data.first().customerCode

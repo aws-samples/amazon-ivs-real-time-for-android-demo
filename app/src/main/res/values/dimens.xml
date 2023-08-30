@@ -78,4 +78,6 @@
     <integer name="bitrate_max">900000</integer>
     <integer name="bitrate_min">100000</integer>
     <integer name="bitrate_default">400000</integer>
+
+    <dimen name="icon_normal">48dp</dimen>
 </resources>

@@ -2,13 +2,19 @@ package com.amazon.ivs.stagesrealtime.common
 
 typealias Ok = Unit
 
+/**
+ * [Response] is our custom class for handling errors in a functional programming way like with
+ * Either in Arrow (and other languages) and Result in Rust.
+ * We have created our own small utility in this sample project to avoid taking on another library as a
+ * dependency.
+ *
+ * If you wish to learn more about this pattern of error handling, it is highly recommended to check out
+ * Rust's implementation or to search for "Railway Oriented Programming".
+ *
+ * The advantage it gives us in this project is ensuring every error type a function can return
+ * is clearly seen in the return type of that function.
+ */
 sealed class Response<out F, out S> {
-
-    fun failure() = when (this) {
-        is Failure -> value
-        else -> null
-    }
-
     inline fun <T> onSuccess(block: (S) -> T) {
         if (this is Success) block(this.value)
     }

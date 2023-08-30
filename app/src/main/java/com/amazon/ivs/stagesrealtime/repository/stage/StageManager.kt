@@ -2,6 +2,7 @@ package com.amazon.ivs.stagesrealtime.repository.stage
 
 import android.content.Context
 import android.view.View
+import androidx.datastore.core.DataStore
 import com.amazon.ivs.stagesrealtime.common.COLOR_BOTTOM_ATTRIBUTE_NAME
 import com.amazon.ivs.stagesrealtime.common.COLOR_LEFT_ATTRIBUTE_NAME
 import com.amazon.ivs.stagesrealtime.common.COLOR_RIGHT_ATTRIBUTE_NAME
@@ -9,7 +10,7 @@ import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_BOTTOM
 import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_LEFT
 import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_RIGHT
 import com.amazon.ivs.stagesrealtime.common.RMS_SPEAKING_THRESHOLD
-import com.amazon.ivs.stagesrealtime.common.extensions.launchIO
+import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.amazon.ivs.stagesrealtime.repository.models.ParticipantAttributes
 import com.amazon.ivs.stagesrealtime.repository.models.UserAvatar
 import com.amazon.ivs.stagesrealtime.repository.networking.models.StageMode
@@ -22,17 +23,20 @@ import com.amazonaws.ivs.broadcast.ParticipantInfo
 import com.amazonaws.ivs.broadcast.Stage
 import com.amazonaws.ivs.broadcast.StageRenderer
 import com.amazonaws.ivs.broadcast.StageStream
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class StageManager(
     private val context: Context,
-    bitrate: Int
+    appSettingsStore: DataStore<AppSettings>,
+    ioScope: CoroutineScope,
 ) {
     // The currently joined stage
-    private val stageStrategy = StageStrategy(context, bitrate)
+    private val stageStrategy = StageStrategy(context, appSettingsStore)
     private var currentStage: Stage? = null
     private var hostVideoStream: StageStream? = null
     private var hostAudioStream: StageStream? = null
@@ -71,29 +75,44 @@ class StageManager(
         override fun onParticipantJoined(stage: Stage, info: ParticipantInfo) {
             if (info.isLocal) return
             Timber.d("Participant joined: ${info.participantId}, ${info.userInfo}, $hostParticipantId, $stageId")
-            if (hostParticipantId == null && stageId == info.userInfo["username"]) {
+            val isHost = hostParticipantId == null && stageId == info.userInfo["username"]
+            if (isHost) {
                 Timber.d("Creator joined: ${info.participantId}, ${info.userInfo}")
                 hostParticipantId = info.participantId
-                var participantUsername = ""
-                val userAvatar = info.userInfo?.let { attributes ->
-                    participantUsername = attributes["username"] ?: ""
-                    UserAvatar(
-                        colorLeft = attributes[COLOR_LEFT_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_LEFT,
-                        colorRight = attributes[COLOR_RIGHT_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_RIGHT,
-                        colorBottom = attributes[COLOR_BOTTOM_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_BOTTOM,
-                    )
-                } ?: UserAvatar()
-                val attributes = ParticipantAttributes(
-                    stageId = participantUsername,
-                    participantId = info.participantId,
-                    isMuted = false,
-                    userAvatar = userAvatar,
-                    isHost = true
-                )
-                joinedParticipants.add(attributes)
-                stageStrategy.joinedParticipants = joinedParticipants
-                stage.refreshStrategy()
             }
+            var participantUsername = ""
+            val userAvatar = info.userInfo?.let { attributes ->
+                participantUsername = attributes["username"] ?: ""
+                UserAvatar(
+                    colorLeft = attributes[COLOR_LEFT_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_LEFT,
+                    colorRight = attributes[COLOR_RIGHT_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_RIGHT,
+                    colorBottom = attributes[COLOR_BOTTOM_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_BOTTOM,
+                )
+            } ?: UserAvatar()
+            val attributes = ParticipantAttributes(
+                stageId = participantUsername,
+                participantId = info.participantId,
+                isMuted = false,
+                userAvatar = userAvatar,
+                isHost = isHost
+            )
+            joinedParticipants.add(attributes)
+            stageStrategy.joinedParticipants = joinedParticipants
+            stage.refreshStrategy()
+            val event = if (isHost) StageEvent.CreatorJoined(
+                participantId = info.participantId,
+                isAudioOff = false,
+                isVideoOff = false,
+                userAvatar = userAvatar,
+                video = null
+            ) else StageEvent.GuestJoined(
+                participantId = info.participantId,
+                isAudioOff = false,
+                isVideoOff = false,
+                userAvatar = userAvatar,
+                video = null
+            )
+            _onEvent.tryEmit(event)
         }
 
         override fun onParticipantLeft(stage: Stage, info: ParticipantInfo) {
@@ -154,7 +173,7 @@ class StageManager(
                 isAudioOff = stream.muted
                 if (isHost) hostAudioStream = stream
                 audioStream = stream
-                speakingJob = launchIO {
+                speakingJob = ioScope.launch {
                     (stream as AudioStageStream).setStatsCallback { _, rms ->
                         joinedParticipants.find { it.participantId == info.participantId }?.let { participant ->
                             val isSpeaking = rms >= RMS_SPEAKING_THRESHOLD
@@ -268,7 +287,7 @@ class StageManager(
         }
     }
 
-    fun joinStage(
+    suspend fun joinStage(
         stageId: String, token: String, type: StageType,
         isCreator: Boolean, hostParticipantId: String? = null
     ) {
@@ -298,7 +317,7 @@ class StageManager(
         currentStage?.refresh()
     }
 
-    fun startPublishing(type: StageType, mode: StageMode) {
+    suspend fun startPublishing(type: StageType, mode: StageMode) {
         isParticipant = true
         stageStrategy.setup(type = type, mode = mode, isParticipating = true, isCreator = false)
         currentStage?.refresh()
@@ -342,7 +361,7 @@ class StageManager(
 
     fun isLocalAudioOff() = stageStrategy.isAudioOff
 
-    fun switchFacing() {
+    suspend fun switchFacing() {
         stageStrategy.switchFacing()
         currentStage?.refresh()
     }
@@ -381,7 +400,7 @@ class StageManager(
 
     fun getGuestId() = joinedParticipants.find { it.participantId != hostParticipantId }?.stageId
 
-    fun updateMode(type: StageType, mode: StageMode) {
+    suspend fun updateMode(type: StageType, mode: StageMode) {
         if (stageStrategy.currentMode == mode) return
         Timber.d("Update mode: ${stageStrategy.currentMode}, $mode")
         stageStrategy.setup(type = type, mode = mode, isCreator = isCreator, isParticipating = isParticipating())

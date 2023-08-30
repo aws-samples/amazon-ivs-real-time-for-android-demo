@@ -1,16 +1,21 @@
 package com.amazon.ivs.stagesrealtime.repository
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import com.amazon.ivs.stagesrealtime.common.Failure
+import com.amazon.ivs.stagesrealtime.common.Ok
+import com.amazon.ivs.stagesrealtime.common.Response
 import com.amazon.ivs.stagesrealtime.common.Success
-import com.amazon.ivs.stagesrealtime.common.VOTE_SESSION_TIME_SECONDS
-import com.amazon.ivs.stagesrealtime.common.emptySeats
-import com.amazon.ivs.stagesrealtime.common.extensions.asPKModeScore
-import com.amazon.ivs.stagesrealtime.common.extensions.getElapsedTimeFromNow
-import com.amazon.ivs.stagesrealtime.common.extensions.launchIO
+import com.amazon.ivs.stagesrealtime.common.binding
+import com.amazon.ivs.stagesrealtime.common.extensions.getByIndexOrFirst
+import com.amazon.ivs.stagesrealtime.common.extensions.getByIndexOrLast
+import com.amazon.ivs.stagesrealtime.common.extensions.getStageId
+import com.amazon.ivs.stagesrealtime.common.extensions.getUserAvatar
 import com.amazon.ivs.stagesrealtime.common.extensions.launchMain
-import com.amazon.ivs.stagesrealtime.common.getNewStageId
+import com.amazon.ivs.stagesrealtime.common.extensions.runCancellableCatching
+import com.amazon.ivs.stagesrealtime.di.IOScope
 import com.amazon.ivs.stagesrealtime.repository.chat.ChatManager
+import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.amazon.ivs.stagesrealtime.repository.models.PKModeScore
 import com.amazon.ivs.stagesrealtime.repository.models.PKModeSessionTime
 import com.amazon.ivs.stagesrealtime.repository.models.ParticipantAttributes
@@ -23,11 +28,9 @@ import com.amazon.ivs.stagesrealtime.repository.networking.models.UserAttributes
 import com.amazon.ivs.stagesrealtime.repository.networking.models.asChatToken
 import com.amazon.ivs.stagesrealtime.repository.networking.models.getIDs
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.CreateChatRequest
-import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.CreateStageRequest
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.DeleteStageRequest
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.DisconnectUserRequest
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.Error
-import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.JoinStageRequest
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.UpdateSeatsRequest
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.UpdateStageModeRequest
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.VoteRequest
@@ -36,37 +39,173 @@ import com.amazon.ivs.stagesrealtime.repository.networking.models.updateOrAdd
 import com.amazon.ivs.stagesrealtime.repository.networking.models.updateSeats
 import com.amazon.ivs.stagesrealtime.repository.stage.StageEvent
 import com.amazon.ivs.stagesrealtime.repository.stage.StageManager
-import com.amazon.ivs.stagesrealtime.ui.stage.models.AudioSeatUIModel
+import com.amazon.ivs.stagesrealtime.repository.stage.usecases.CreateStageUseCase
+import com.amazon.ivs.stagesrealtime.repository.stage.usecases.JoinStageUseCase
+import com.amazon.ivs.stagesrealtime.ui.stage.models.ChatUIMessage
 import com.amazon.ivs.stagesrealtime.ui.stage.models.ScrollDirection
 import com.amazon.ivs.stagesrealtime.ui.stage.models.StageListModel
 import com.amazon.ivs.stagesrealtime.ui.stage.models.StageUIModel
 import com.amazonaws.ivs.chat.messaging.requests.SendMessageRequest
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import timber.log.Timber
-import kotlin.properties.Delegates
+import javax.inject.Inject
 
-class StageRepository(
-    private val context: Context,
-    private val preferenceProvider: PreferenceProvider,
+/**
+ * Handles the stage functionality and delivers prepared
+ * state data to the UI
+ */
+interface StageRepository {
+    /**
+     * Triggered whenever something changes that needs to be reflected on the UI.
+     * It holds the state for the current active stage as well as the state for surrounding stages in the list.
+     */
+    val stages: StateFlow<StageListModel>
+
+    /**
+     * Triggered whenever a new message is received from the [ChatManager] to be shown on the UI.
+     */
+    val messages: StateFlow<List<ChatUIMessage>>
+
+    /**
+     * Triggered whenever someone sends a "heart" event in [ChatManager].
+     */
+    val onStageLike: Flow<Unit>
+
+    /**
+     * Triggered whenever PK mode score is updated.
+     */
+    val onPKModeScore: Flow<PKModeScore>
+
+    /**
+     * Triggered whenever the PK mode is started for voting.
+     */
+    val onVoteStart: Flow<PKModeSessionTime>
+
+    /**
+     * Triggered whenever the RTC data for stage is collected.
+     */
+    val stageRTCData: StateFlow<RTCData>
+
+    /**
+     * Triggered whenever the RTC data for all stage participants is collected.
+     */
+    val stageRTCDataList: StateFlow<List<RTCData>>
+
+    /**
+     * Creates a new stage.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     */
+    suspend fun createStage(type: StageType): Response<Error.CreateStageError, Ok>
+
+    /**
+     * Deletes current active stage.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     */
+    suspend fun deleteStage(): Response<Error.DeleteStageError, Ok>
+
+    /**
+     * Requests a list of stages from the backend.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     * The first stage from the list will be joined if not joined yet.
+     * This function should be called when and while you are NOT the stage creator.
+     */
+    suspend fun getStages(): Response<Error.GetStagesError, Ok>
+
+    /**
+     * Handles the selected seat and sends a backend request to notify other stage participants.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     */
+    suspend fun onSeatClicked(index: Int): Response<Error.UpdateSeatsError, Ok>
+
+    /**
+     * Starts publishing local user media.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     */
+    suspend fun startPublishing(mode: StageMode, updateMode: Boolean = true): Response<Error.JoinStageError, Ok>
+
+    /**
+     * Stops publishing local user media.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     */
+    suspend fun stopPublishing(): Response<Error.LeaveStageError, Ok>
+
+    /**
+     * Disconnects from the currently joined stage if connected.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown, but only if
+     * a stage was connected.
+     */
+    suspend fun disconnectFromCurrentStage(): Response<Unit, Ok>
+
+    /**
+     * Kicks a participant from the current stage.
+     * This can only be used by stage creator and only when in Guest or PK mode.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     */
+    suspend fun kickParticipant(): Response<Error.KickParticipantError, Ok>
+
+    /**
+     * Sends a message to backend for voting for the two participants in PK mode.
+     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
+     */
+    suspend fun castVote(voteHost: Boolean): Response<Error.CastVoteError, Ok>
+
+    /**
+     * Returns the [UserAvatar] for the PK mode winner.
+     */
+    suspend fun getPKModeWinnerAvatar(hostWin: Boolean): UserAvatar
+
+    /**
+     * Sends a request to backend to validate the connection code.
+     * Used to verify the connection with the server before connecting to a stage.
+     */
+    suspend fun verifyConnectionCode(): Response<Error.CustomerCodeError, Ok>
+
+    // Self explanatory functions
+    suspend fun switchFacing()
+    fun scrollStages(direction: ScrollDirection)
+    fun sendMessage(message: String)
+    fun likeStage()
+    fun isCurrentStageVideo(): Boolean
+    fun isStageCreator(): Boolean
+    fun isParticipating(): Boolean
+    fun switchAudio()
+    fun switchVideo()
+    fun canScroll(): Boolean
+    fun requestRTCStats()
+    fun clearResources()
+    fun destroyApi()
+}
+
+class StageRepositoryImpl @Inject constructor(
+    @IOScope private val ioScope: CoroutineScope,
+    @ApplicationContext private val context: Context,
     private val networkClient: NetworkClient,
-    private val chatManager: ChatManager
-) {
+    private val chatManager: ChatManager,
+    private val appSettingsStore: DataStore<AppSettings>,
+    private val createStageUseCase: CreateStageUseCase,
+    private val joinStageUseCase: JoinStageUseCase,
+) : StageRepository {
     private val api get() = networkClient.getOrCreateApi()
     private val availableStages = mutableListOf<StageUIModel>()
+    private val stageJobs = mutableListOf<Job>()
 
     private val _stages = MutableStateFlow(StageListModel())
     private val _stageRTCData = MutableStateFlow(RTCData())
     private val _stageRTCDataList = MutableStateFlow(emptyList<RTCData>())
-    private val _onActiveSessionScore = Channel<PKModeScore>()
-    private val _onActiveSessionTime = Channel<PKModeSessionTime>()
-    private var stageManager = StageManager(context, preferenceProvider.bitrate)
-    private val stageJobs = mutableListOf<Job>()
+    private val onActiveSessionScore = Channel<PKModeScore>()
+    private val onActiveSessionTime = Channel<PKModeSessionTime>()
+    private var stageManager = StageManager(context, appSettingsStore, ioScope)
 
     // Current stage variables
     private var currentPosition = 0
@@ -81,41 +220,20 @@ class StageRepository(
     private var currentlyJoinedStageId: String? = null
     private val currentStageIdByPosition get() = availableStages.getOrNull(currentPosition)?.stageId
 
-    val messages = chatManager.messages
-    val onStageLike = chatManager.onStageLike
-    val onPKModeScore = merge(chatManager.onPKModeScore, _onActiveSessionScore.receiveAsFlow())
-    val onVoteStart = merge(chatManager.onVoteStart, _onActiveSessionTime.receiveAsFlow())
-    val stageRTCData = _stageRTCData.asStateFlow()
-    val stageRTCDataList = _stageRTCDataList.asStateFlow()
-
-    val stages by lazy {
+    // Public observable flows used by UI
+    override val messages = chatManager.messages
+    override val onStageLike = chatManager.onStageLike
+    override val onPKModeScore = merge(chatManager.onPKModeScore, onActiveSessionScore.receiveAsFlow())
+    override val onVoteStart = merge(chatManager.onVoteStart, onActiveSessionTime.receiveAsFlow())
+    override val stageRTCData = _stageRTCData.asStateFlow()
+    override val stageRTCDataList = _stageRTCDataList.asStateFlow()
+    override val stages by lazy {
         createOnSeatsUpdatedJob()
         createOnModeChangedJob()
         _stages.asStateFlow()
     }
 
-    var stageId by Delegates.observable(preferenceProvider.stageId ?: getNewStageId()) { _, _, id ->
-        preferenceProvider.stageId = id
-    }
-    var userAvatar by Delegates.observable(preferenceProvider.userAvatar) { _, _, avatar ->
-        preferenceProvider.userAvatar = avatar
-    }
-    var customerCode by Delegates.observable(preferenceProvider.customerCode) { _, _, code ->
-        preferenceProvider.customerCode = code
-        if (code == null) {
-            networkClient.destroyApi()
-        }
-    }
-    var bitrate by Delegates.observable(preferenceProvider.bitrate) { _, _, bitrate ->
-        Timber.d("New bitrate set: $bitrate")
-        preferenceProvider.bitrate = bitrate
-    }
-    var apiKey by Delegates.observable(preferenceProvider.apiKey) { _, _, apiKey ->
-        Timber.d("New api key set: $apiKey")
-        preferenceProvider.apiKey = apiKey
-    }
-
-    fun scrollStages(direction: ScrollDirection) {
+    override fun scrollStages(direction: ScrollDirection) {
         val stageCount = availableStages.size
         scrollDirection = direction
         val lastPosition = currentPosition
@@ -138,199 +256,203 @@ class StageRepository(
         }
     }
 
-    suspend fun createStage(type: StageType) = try {
-        val userAvatar = preferenceProvider.userAvatar
-        val request = CreateStageRequest(
-            hostId = stageId,
-            hostAttributes = UserAttributes(
-                avatarColBottom = userAvatar.colorBottom,
-                avatarColLeft = userAvatar.colorLeft,
-                avatarColRight = userAvatar.colorRight,
-                username = stageId
-            ),
-            type = type,
-            cid = customerCode!!
-        )
-        val response = api.createStage(request)
-        val token = response.hostParticipantToken.token
-        val hostParticipantId = response.hostParticipantToken.participantId
-        val region = response.region
-        currentToken = token
-        currentParticipantId = hostParticipantId
-        currentStageType = type
-        Timber.d("Stage created: $response for $userAvatar, $currentStageType")
-        val isAudioMode = type == StageType.AUDIO
-        val seats = mutableListOf<AudioSeatUIModel>()
-        if (isAudioMode) {
-            seats.addAll(emptySeats)
-            seats.removeAt(0)
-            seats.add(
-                0, AudioSeatUIModel(
-                    id = 0,
-                    participantId = hostParticipantId,
-                    userAvatar = userAvatar
-                )
+    override suspend fun createStage(type: StageType): Response<Error.CreateStageError, Ok> {
+        val response = createStageUseCase.createStage(type)
+        return binding {
+            val joinedStage = response.bind()
+            currentToken = joinedStage.token
+            currentParticipantId = joinedStage.hostParticipantId
+            currentStageType = joinedStage.type
+            availableStages.add(joinedStage.stageUIModel)
+
+            // If stage entry was added in backend - create and observe the Stage instance
+            createAndObserveNewStageJobs()
+            stageManager.joinStage(
+                stageId = joinedStage.stageId,
+                hostParticipantId = joinedStage.hostParticipantId,
+                token = joinedStage.token,
+                type = joinedStage.type,
+                isCreator = true
             )
-            api.updateSeats(UpdateSeatsRequest(hostId = stageId, userId = stageId, seats = seats.getIDs()))
-        }
-        availableStages.add(
-            StageUIModel(
-                stageId = stageId,
-                creatorAvatar = userAvatar,
-                selfAvatar = userAvatar,
-                isCreator = true,
-                isAudioMode = isAudioMode,
-                seats = seats
-            )
-        )
-        createAndObserveNewStageJobs()
-        stageManager.joinStage(
-            stageId = stageId,
-            hostParticipantId = hostParticipantId,
-            token = token,
-            type = type,
-            isCreator = true
-        )
-        stageManager.observeStage()
-        updateStages()
-        createChat(stageId, stageId, region)
-        Success()
-    } catch (e: Exception) {
-        Timber.e(e, "Failed to create stage")
-        Failure(Error.CreateStageError)
-    }
-
-    suspend fun onSeatClicked(index: Int) = try {
-        val stage = availableStages.getOrNull(currentPosition) ?: run { return Failure(Error.UpdateSeatsError) }
-        val currentIndex = stage.seats.indexOfFirst { it.participantId == currentParticipantId }
-        val joinStage = currentIndex != index
-        var seats = stage.seats.map { seat ->
-            if (seat.participantId == currentParticipantId) {
-                seat.copy(participantId = "", userAvatar = null, isMuted = false)
-            } else {
-                seat.copy()
-            }
-        }
-        seats = seats.mapIndexed { seatIndex, seat ->
-            if (seatIndex == index) {
-                val id = currentParticipantId ?: ""
-                seat.copy(participantId = id, userAvatar = userAvatar, isMuted = stageManager.isLocalAudioOff())
-            } else {
-                seat.copy()
-            }
-        }
-        Timber.d("Updating stages on click: $joinStage, ${seats.getIDs()}")
-        availableStages.update(currentPosition, _seats = seats)
-        updateStages()
-        if (joinStage) {
-            startPublishing(StageMode.NONE, updateMode = false)
-        } else {
-            stopPublishing()
-        }
-        api.updateSeats(UpdateSeatsRequest(hostId = stage.stageId, userId = stageId, seats = seats.getIDs()))
-        Success()
-    } catch (e: Exception) {
-        Timber.e(e, "Failed to update seats")
-        Failure(Error.UpdateSeatsError)
-    }
-
-    suspend fun getStages() = try {
-        val response = api.getStages()
-        Timber.d("Stages received: ${availableStages.count()}, $response, $currentPosition, $currentlyJoinedStageId")
-        @Suppress("UNNECESSARY_SAFE_CALL")
-        // TODO: There is a race condition where stage.stageId can throw a null pointer
-        val staleStages =
-            availableStages.toList().filter { stage -> response.stages.none { it.hostId == stage?.stageId } }
-        Timber.d("Stale stages: $staleStages")
-        staleStages.forEach { staleStage ->
-            availableStages.remove(staleStage)
-            if (staleStage.stageId == currentlyJoinedStageId) {
-                currentlyJoinedStageId = null
-            }
-        }
-        if (currentPosition >= availableStages.count()) currentPosition = 0
-
-        val indexOfCurrentStage = availableStages.indexOfFirst { it.stageId == currentlyJoinedStageId }
-        if (indexOfCurrentStage != -1 && indexOfCurrentStage != currentPosition) currentPosition = indexOfCurrentStage
-
-        availableStages.updateOrAdd(stageId, response.stages, userAvatar)
-        availableStages.updateSeats(currentPosition, stageManager, ::getParticipantAttributes)
-        val currentStage = availableStages.getOrNull(currentPosition)
-        if (currentStage != null && currentStage.stageId != currentlyJoinedStageId) {
-            joinStage(currentStage)
-        } else {
+            stageManager.observeStage()
             updateStages()
-        }
-        Success()
-    } catch (e: Exception) {
-        Timber.e(e, "Failed to get stages")
-        Failure(Error.GetStagesError)
-    }
-
-    suspend fun verifyConnectionCode() = try {
-        Timber.d("Verifying the connection with the API")
-        val response = api.verifyConnectionCode()
-        if (response.isSuccessful) {
+            createChat(joinedStage.stageId, joinedStage.stageId, joinedStage.region)
             Success()
-        } else {
-            Failure(Error.CustomerCodeError)
         }
-    } catch (e: Exception) {
-        Timber.d("Failed to connect to backend")
-        Failure(Error.CustomerCodeError)
     }
 
-    suspend fun startPublishing(mode: StageMode, updateMode: Boolean = true) = try {
-        Timber.d("Start publishing: $mode, $currentStageIdByPosition, $currentStageType")
-        val type = currentStageType ?: run { return Failure(Error.JoinStageError) }
-        val stageIdCurrent = currentStageIdByPosition ?: run { return Failure(Error.JoinStageError) }
-        if (updateMode) {
-            api.updateStageMode(UpdateStageModeRequest(hostId = stageIdCurrent, userId = stageId, mode = mode))
-        }
-        stageManager.startPublishing(type, mode)
-        availableStages.update(
-            index = currentPosition,
-            _isPKMode = mode == StageMode.PK,
-            _isGuestMode = mode == StageMode.GUEST_SPOT
-        )
-        Success()
-    } catch (e: Exception) {
-        Timber.d(e, "Failed to start publishing on position $currentPosition")
-        Failure(Error.JoinStageError)
-    }
-
-    suspend fun stopPublishing() = try {
-        Timber.d("Leave stage: $currentParticipantId, $currentStageIdByPosition")
-        val stageIdCurrent = currentStageIdByPosition ?: run { return Failure(Error.LeaveStageError) }
-        if (currentStageType == StageType.AUDIO) {
-            val stage = availableStages.getOrNull(currentPosition) ?: run { return Failure(Error.LeaveStageError) }
-            val seats = stage.seats.map { seat ->
+    override suspend fun onSeatClicked(index: Int)= runCancellableCatching(
+        tryBlock = {
+            val stage = availableStages.getOrNull(currentPosition)
+                ?: return@runCancellableCatching Failure(Error.UpdateSeatsError)
+            val currentIndex = stage.seats.indexOfFirst { it.participantId == currentParticipantId }
+            val joinStage = currentIndex != index
+            var seats = stage.seats.map { seat ->
                 if (seat.participantId == currentParticipantId) {
                     seat.copy(participantId = "", userAvatar = null, isMuted = false)
                 } else {
                     seat.copy()
                 }
             }
-            Timber.d("Leaving audio room: ${seats.getIDs()}")
+            seats = seats.mapIndexed { seatIndex, seat ->
+                if (seatIndex == index) {
+                    val id = currentParticipantId ?: ""
+                    seat.copy(
+                        participantId = id,
+                        userAvatar = appSettingsStore.getUserAvatar(),
+                        isMuted = stageManager.isLocalAudioOff()
+                    )
+                } else {
+                    seat.copy()
+                }
+            }
+            Timber.d("Updating stages on click: $joinStage, ${seats.getIDs()}")
             availableStages.update(currentPosition, _seats = seats)
             updateStages()
-            api.updateSeats(UpdateSeatsRequest(hostId = stage.stageId, userId = stageId, seats = seats.getIDs()))
-        } else {
-            api.updateStageMode(
-                UpdateStageModeRequest(
-                    hostId = stageIdCurrent,
-                    userId = stageId,
-                    mode = StageMode.NONE
-                )
-            )
+            if (joinStage) {
+                startPublishing(StageMode.NONE, updateMode = false)
+            } else {
+                stopPublishing()
+            }
+            api.updateSeats(UpdateSeatsRequest(
+                hostId = stage.stageId,
+                userId = appSettingsStore.getStageId(),
+                seats = seats.getIDs()
+            ))
+            Success()
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to update seats")
+            Failure(Error.UpdateSeatsError)
         }
-        stageManager.stopPublishing()
-        Success()
-    } catch (e: Exception) {
-        Failure(Error.LeaveStageError)
-    }
+    )
 
-    fun clearResources() {
+    override suspend fun getStages() = runCancellableCatching(
+        tryBlock = {
+            val response = api.getStages()
+            Timber.d("Stages received: ${availableStages.count()}, $response, $currentPosition, $currentlyJoinedStageId")
+            @Suppress("UNNECESSARY_SAFE_CALL")
+            // There could be a race condition where stage.stageId can throw a null pointer so we need the
+            // "unnecessary" safe check when filtering
+            val staleStages = availableStages.toList().filter { stage ->
+                response.stages.none { it.hostId == stage?.stageId }
+            }
+            Timber.d("Stale stages: $staleStages")
+            staleStages.forEach { staleStage ->
+                availableStages.remove(staleStage)
+                if (staleStage.stageId == currentlyJoinedStageId) {
+                    currentlyJoinedStageId = null
+                }
+            }
+            if (currentPosition >= availableStages.count()) {
+                currentPosition = 0
+            }
+
+            val indexOfCurrentStage = availableStages.indexOfFirst {
+                it.stageId == currentlyJoinedStageId
+            }
+            if (indexOfCurrentStage != -1 && indexOfCurrentStage != currentPosition) {
+                currentPosition = indexOfCurrentStage
+            }
+
+            availableStages.updateOrAdd(appSettingsStore.getStageId(), response.stages, appSettingsStore.getUserAvatar())
+            availableStages.updateSeats(
+                currentPosition,
+                stageManager,
+                ::getParticipantAttributes
+            )
+            val currentStage = availableStages.getOrNull(currentPosition)
+            if (currentStage != null && currentStage.stageId != currentlyJoinedStageId) {
+                joinStage(currentStage)
+            } else {
+                updateStages()
+            }
+            Success()
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to get stages")
+            Failure(Error.GetStagesError)
+        }
+    )
+
+    override suspend fun verifyConnectionCode() = runCancellableCatching(
+        tryBlock = {
+            Timber.d("Verifying the connection with the API")
+            val response = api.verifyConnectionCode()
+            if (response.isSuccessful) {
+                Success()
+            } else {
+                Failure(Error.CustomerCodeError)
+            }
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to connect to backend")
+            Failure(Error.CustomerCodeError)
+        }
+    )
+
+    override suspend fun startPublishing(mode: StageMode, updateMode: Boolean) = runCancellableCatching(
+        tryBlock = {
+            Timber.d("Start publishing: $mode, $currentStageIdByPosition, $currentStageType")
+            val type = currentStageType ?: return@runCancellableCatching Failure(Error.JoinStageError)
+            val stageIdCurrent = currentStageIdByPosition ?: return@runCancellableCatching Failure(Error.JoinStageError)
+            if (updateMode) {
+                api.updateStageMode(UpdateStageModeRequest(
+                    hostId = stageIdCurrent,
+                    userId = appSettingsStore.getStageId(),
+                    mode = mode
+                ))
+            }
+            stageManager.startPublishing(type, mode)
+            availableStages.update(
+                index = currentPosition,
+                _isPKMode = mode == StageMode.PK,
+                _isGuestMode = mode == StageMode.GUEST_SPOT
+            )
+            Success()
+        }, errorBlock = { e ->
+            Timber.d(e, "Failed to start publishing on position $currentPosition")
+            Failure(Error.JoinStageError)
+        }
+    )
+
+    override suspend fun stopPublishing() = runCancellableCatching(
+        tryBlock = {
+            Timber.d("Leave stage: $currentParticipantId, $currentStageIdByPosition")
+            val stageIdCurrent = currentStageIdByPosition ?: return@runCancellableCatching Failure(Error.LeaveStageError)
+            if (currentStageType == StageType.AUDIO) {
+                val stage = availableStages.getOrNull(currentPosition)
+                    ?: return@runCancellableCatching Failure(Error.LeaveStageError)
+                val seats = stage.seats.map { seat ->
+                    if (seat.participantId == currentParticipantId) {
+                        seat.copy(participantId = "", userAvatar = null, isMuted = false)
+                    } else {
+                        seat.copy()
+                    }
+                }
+                Timber.d("Leaving audio room: ${seats.getIDs()}")
+                availableStages.update(currentPosition, _seats = seats)
+                updateStages()
+                api.updateSeats(UpdateSeatsRequest(
+                    hostId = stage.stageId,
+                    userId = appSettingsStore.getStageId(),
+                    seats = seats.getIDs()
+                ))
+            } else {
+                api.updateStageMode(
+                    UpdateStageModeRequest(
+                        hostId = stageIdCurrent,
+                        userId = appSettingsStore.getStageId(),
+                        mode = StageMode.NONE
+                    )
+                )
+            }
+            stageManager.stopPublishing()
+            Success()
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to stop publishing on position: $currentPosition")
+            Failure(Error.LeaveStageError)
+        }
+    )
+
+    override fun clearResources() {
         stageJobs.forEach { it.cancel() }
         stageJobs.clear()
         chatManager.clearPreviousChat()
@@ -340,88 +462,104 @@ class StageRepository(
         currentToken = null
         currentParticipantId = null
         availableStages.clear()
+        destroyApi()
     }
 
-    suspend fun disconnectFromCurrentStage() = try {
-        stageManager.leaveStage()
-        val participantId = currentParticipantId ?: run { return Failure(Unit) }
-        val hostId = currentStageIdByPosition ?: run { return Failure(Unit) }
-        Timber.d("Disconnecting from $hostId, $stageId, $participantId")
-        api.disconnectUser(DisconnectUserRequest(hostId, stageId, participantId))
-        Success()
-    } catch (e: Exception) {
-        Timber.d(e, "Failed to disconnect from current stage")
-        Failure(Unit)
+    override fun destroyApi() {
+        networkClient.destroyApi()
     }
 
-    suspend fun kickParticipant() = try {
-        Timber.d("Kicking participant and updating stage to NONE")
-        api.updateStageMode(UpdateStageModeRequest(hostId = stageId, userId = stageId, mode = StageMode.NONE))
-        Success()
-    } catch (e: Exception) {
-        Failure(Error.KickParticipantError)
-    }
+    override suspend fun disconnectFromCurrentStage() = runCancellableCatching(
+        tryBlock = {
+            val stageId = appSettingsStore.getStageId()
+            stageManager.leaveStage()
+            val participantId = currentParticipantId ?: return@runCancellableCatching Failure(Unit)
+            val hostId = currentStageIdByPosition ?: return@runCancellableCatching Failure(Unit)
+            Timber.d("Disconnecting from $hostId, $stageId, $participantId")
+            api.disconnectUser(DisconnectUserRequest(hostId, stageId, participantId))
+            Success()
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to disconnect from current stage")
+            Failure(Unit)
+        }
+    )
 
-    suspend fun deleteStage() = try {
-        api.deleteStage(DeleteStageRequest(stageId))
-        Timber.d("Stage deleted")
-        availableStages.clear()
-        stageManager.leaveStage()
-        clearResources()
-        updateStages()
-        Success()
-    } catch (e: Exception) {
-        Timber.d("Failed to delete stage")
-        Failure(Error.DeleteStageError)
-    }
+    override suspend fun kickParticipant() = runCancellableCatching(
+        tryBlock = {
+            Timber.d("Kicking participant and updating stage to NONE")
+            val stageId = appSettingsStore.getStageId()
+            api.updateStageMode(UpdateStageModeRequest(hostId = stageId, userId = stageId, mode = StageMode.NONE))
+            Success()
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to kick participant")
+            Failure(Error.KickParticipantError)
+        }
+    )
 
-    suspend fun castVote(voteHost: Boolean) = try {
-        val hostId = currentStageIdByPosition ?: run { return Failure(Error.CastVoteError) }
-        val voteBody = VoteRequest(
-            hostId,
-            if (voteHost) hostId
-            else if (stageManager.isParticipating() && !stageManager.isStageCreator()) stageId
-            else stageManager.getGuestId()!!
-        )
-        Timber.d("Casting vote for $voteBody")
-        api.castVote(voteBody)
-        Success()
-    } catch (e: Exception) {
-        Timber.d(e, "Failed to cast vote")
-        Failure(Error.CastVoteError)
-    }
+    override suspend fun deleteStage() = runCancellableCatching(
+        tryBlock = {
+            api.deleteStage(DeleteStageRequest(appSettingsStore.getStageId()))
+            Timber.d("Stage deleted")
+            availableStages.clear()
+            stageManager.leaveStage()
+            clearResources()
+            updateStages()
+            Success()
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to delete stage")
+            Failure(Error.DeleteStageError)
+        }
+    )
 
-    fun sendMessage(message: String) {
+    override suspend fun castVote(voteHost: Boolean) = runCancellableCatching(
+        tryBlock = {
+            val hostId = currentStageIdByPosition ?: return@runCancellableCatching Failure(Error.CastVoteError)
+            val voteBody = VoteRequest(
+                hostId,
+                if (voteHost) hostId
+                else if (stageManager.isParticipating() && !stageManager.isStageCreator()) appSettingsStore.getStageId()
+                else stageManager.getGuestId()!!
+            )
+            Timber.d("Casting vote for $voteBody")
+            api.castVote(voteBody)
+            Success()
+        }, errorBlock = { e ->
+            Timber.d(e, "Failed to cast vote")
+            Failure(Error.CastVoteError)
+        }
+    )
+
+    override fun sendMessage(message: String) {
         chatManager.sendMessage(SendMessageRequest(message))
     }
 
-    fun likeStage() {
+    override fun likeStage() {
         chatManager.likeStage()
     }
 
-    fun isCurrentStageVideo() = stageManager.isCurrentStageVideo()
+    override fun isCurrentStageVideo() = stageManager.isCurrentStageVideo()
 
-    fun isStageCreator() = stageManager.isStageCreator()
+    override fun isStageCreator() = stageManager.isStageCreator()
 
-    fun isParticipating() = stageManager.isParticipating()
+    override fun isParticipating() = stageManager.isParticipating()
 
-    fun switchAudio() {
+    override fun switchAudio() {
         if (isParticipating()) stageManager.switchAudio()
     }
 
-    fun switchVideo() {
+    override fun switchVideo() {
         if (isParticipating()) stageManager.switchVideo()
     }
 
-    fun switchFacing() {
+    override suspend fun switchFacing() {
         if (isParticipating()) stageManager.switchFacing()
     }
 
-    fun canScroll() = availableStages.size > 1 && !isParticipating()
+    override fun canScroll() = availableStages.size > 1 && !isParticipating()
 
-    fun requestRTCStats() = stageManager.requestRTCStats()
+    override fun requestRTCStats() = stageManager.requestRTCStats()
 
-    fun getPKModeWinnerAvatar(hostWin: Boolean): UserAvatar {
+    override suspend fun getPKModeWinnerAvatar(hostWin: Boolean): UserAvatar {
         availableStages.getOrNull(currentPosition)?.let { stage ->
             val isCreator = stage.isCreator
             val isParticipant = stage.isParticipant
@@ -429,19 +567,19 @@ class StageRepository(
             val guestId = stageManager.getGuestId()
             Timber.d("Get PK Mode winner: $hostId, $guestId")
             return when (hostWin) {
-                true -> if (isCreator) userAvatar else stageManager.getParticipantAvatar(hostId)
-                else -> if (isParticipant) userAvatar else stageManager.getParticipantAvatar(guestId)
+                true -> if (isCreator) appSettingsStore.getUserAvatar() else stageManager.getParticipantAvatar(hostId)
+                else -> if (isParticipant) appSettingsStore.getUserAvatar() else stageManager.getParticipantAvatar(guestId)
             } ?: UserAvatar()
         } ?: return UserAvatar()
     }
 
-    private fun getParticipantAttributes(participantId: String): ParticipantAttributes? {
+    private suspend fun getParticipantAttributes(participantId: String): ParticipantAttributes? {
         availableStages.getOrNull(currentPosition)?.let { stage ->
             return if (currentParticipantId == participantId) {
                 ParticipantAttributes(
                     stageId = stage.stageId,
                     participantId = participantId,
-                    userAvatar = userAvatar,
+                    userAvatar = appSettingsStore.getUserAvatar(),
                     isMuted = stageManager.isLocalAudioOff(),
                     isSpeaking = isLocalUserSpeaking && !stageManager.isLocalAudioOff(),
                     isHost = isStageCreator()
@@ -453,11 +591,61 @@ class StageRepository(
         return null
     }
 
+    private fun joinStage(stage: StageUIModel) {
+        currentJoinJob?.cancel()
+        if (isStageCreator() || stage.stageId == currentlyJoinedStageId) return
+        currentJoinJob = launchMain {
+            Timber.d("Attempting join stage - $stage; $currentlyJoinedStageId")
+            val response = joinStageUseCase.joinStage(stage)
+            response.onSuccess { joinedStage ->
+                // If the stage was successfully joined in backend - create and observe the Stage object locally
+                Timber.d("Stage joined: $joinedStage, $currentStageType")
+                currentlyJoinedStageId = stage.stageId
+                currentToken = joinedStage.token
+                currentParticipantId = joinedStage.participantId
+                currentStageType = joinedStage.stageType
+                val pkModeScore = joinedStage.pkModeScore
+                val pkModeSessionTime = joinedStage.pkModeSessionTime
+                if (pkModeScore != null && pkModeSessionTime != null) {
+                    Timber.d("Joined voting session with score and remained time: $pkModeScore; $pkModeSessionTime")
+                    onActiveSessionScore.send(pkModeScore)
+                    onActiveSessionTime.send(pkModeSessionTime)
+                }
+
+                createAndObserveNewStageJobs()
+                stageManager.joinStage(
+                    stageId = joinedStage.stageId,
+                    token = joinedStage.token,
+                    type = joinedStage.stageType,
+                    isCreator = false
+                )
+                stageManager.observeStage()
+                createChat(joinedStage.stageId, appSettingsStore.getStageId(), joinedStage.region)
+            }
+            response.onFailure {
+                currentlyJoinedStageId = null
+            }
+        }
+    }
+
+    /**
+     * Called whenever something changes in the stage to update the UI.
+     * This function is called very frequently and should always contain the latest up to date state of the UI.
+     */
     private fun updateStages() {
         val stageList = StageListModel(stageCount = availableStages.size)
         Timber.d("Updating stages: ${availableStages.isNotEmpty()}, $currentPosition")
         if (availableStages.isNotEmpty()) {
             val centerStage = availableStages.getByIndexOrFirst(index = currentPosition)
+            // For convenience we crate a local function here not in the class
+            fun clearPreviousStageVideos(stage: StageUIModel?): StageUIModel? {
+                if (stage != null && stage.stageId != currentStageIdByPosition && stage in availableStages) {
+                    val index = availableStages.indexOf(stage)
+                    availableStages[index] = stage.copy(creatorVideo = null, guestVideo = null)
+                    return availableStages[index]
+                }
+                return stage
+            }
 
             // Makes sure to clear video sources for scrolled stages
             var topStage: StageUIModel? = availableStages.getByIndexOrLast(index = currentPosition - 1)
@@ -474,72 +662,15 @@ class StageRepository(
         _stages.update { stageList }
     }
 
-    private fun clearPreviousStageVideos(stage: StageUIModel?): StageUIModel? {
-        if (stage != null && stage.stageId != currentStageIdByPosition && stage in availableStages) {
-            val index = availableStages.indexOf(stage)
-            availableStages[index] = stage.copy(creatorVideo = null, guestVideo = null)
-            return availableStages[index]
-        }
-        return stage
-    }
-
-    private fun joinStage(stage: StageUIModel) {
-        Timber.d("Attempting join stage - $stage; $currentlyJoinedStageId")
-        currentJoinJob?.cancel()
-        currentJoinJob = launchMain {
-            try {
-                if (isStageCreator() || stage.stageId == currentlyJoinedStageId) return@launchMain
-                currentlyJoinedStageId = stage.stageId
-                val userAvatar = preferenceProvider.userAvatar
-                val request = JoinStageRequest(
-                    hostId = stage.stageId,
-                    userId = stageId,
-                    attributes = UserAttributes(
-                        avatarColLeft = userAvatar.colorLeft,
-                        avatarColRight = userAvatar.colorRight,
-                        avatarColBottom = userAvatar.colorBottom,
-                        username = stageId
-                    )
-                )
-                val response = api.joinStage(request)
-                val participantId = response.participantId
-                val token = response.token
-                val region = response.region
-                val stageType = if (stage.isAudioMode) StageType.AUDIO else StageType.VIDEO
-                response.metadata.activeVotingSession?.let { votingSession ->
-                    val secondsRemaining = VOTE_SESSION_TIME_SECONDS - votingSession.startedAt.getElapsedTimeFromNow()
-                    val currentScore = votingSession.tally.asPKModeScore(
-                        hostId = stage.stageId,
-                        shouldResetScore = true
-                    )
-                    Timber.d("Joined voting session with score and remained time: $currentScore; $secondsRemaining")
-                    _onActiveSessionScore.send(currentScore)
-                    _onActiveSessionTime.send(PKModeSessionTime(secondsRemaining = secondsRemaining))
-                }
-                currentToken = token
-                currentParticipantId = participantId
-                currentStageType = stageType
-                Timber.d("Stage joined: $response, $currentStageType")
-                createAndObserveNewStageJobs()
-                stageManager.joinStage(
-                    stageId = stage.stageId,
-                    token = token,
-                    type = stageType,
-                    isCreator = false
-                )
-                stageManager.observeStage()
-                createChat(stage.stageId, stageId, region)
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to join stage")
-                currentlyJoinedStageId = null
-            }
-        }
-    }
-
-    private suspend fun createChat(hostId: String, userId: String, region: String) {
-        try {
+    /**
+     * Called when a new stage is created or joined.
+     * The function requests a new chat token and starts observing the chat room.
+     * Any previous chat room will be disposed.
+     */
+    private suspend fun createChat(hostId: String, userId: String, region: String) = runCancellableCatching(
+        tryBlock = {
             Timber.d("Creating new local chat: $hostId")
-            val userAvatar = preferenceProvider.userAvatar
+            val userAvatar = appSettingsStore.getUserAvatar()
             val response = api.createChat(
                 CreateChatRequest(
                     hostId = hostId,
@@ -548,27 +679,29 @@ class StageRepository(
                         avatarColLeft = userAvatar.colorLeft,
                         avatarColRight = userAvatar.colorRight,
                         avatarColBottom = userAvatar.colorBottom,
-                        username = stageId
+                        username = appSettingsStore.getStageId()
                     )
                 )
             )
             chatManager.joinRoom(response.asChatToken(), region, userId, hostId)
-        } catch (e: Exception) {
-            Timber.d("Failed to create chat")
+        }, errorBlock = { e ->
+            Timber.e(e, "Failed to create chat")
         }
-    }
+    )
 
-    private fun List<StageUIModel>.getByIndexOrFirst(index: Int) = getOrElse(index) { firstOrNull() }
-    private fun List<StageUIModel>.getByIndexOrLast(index: Int) = getOrElse(index) { lastOrNull() }
-
+    /**
+     * Called by the create and join stage use cases.
+     * Creates a new [StageManager] instance, observes it and disposes the old one as well
+     * as cancelling any ongoing stage observation jobs.
+     */
     private fun createAndObserveNewStageJobs() {
         val oldManager = stageManager
         stageJobs.forEach { it.cancel() }
         stageJobs.clear()
-        stageManager = StageManager(context, bitrate)
+        stageManager = StageManager(context, appSettingsStore, ioScope)
         Timber.d("New stage manager created")
         stageJobs.add(createStageEventJob())
-        stageJobs.add(launchIO {
+        stageJobs.add(ioScope.launch {
             stageManager.isLocalUserSpeaking.collect { isSpeaking ->
                 isLocalUserSpeaking = isSpeaking
                 availableStages.update(
@@ -582,12 +715,12 @@ class StageRepository(
                 updateStages()
             }
         })
-        stageJobs.add(launchIO {
+        stageJobs.add(ioScope.launch {
             stageManager.rtcData.collect { data ->
                 _stageRTCData.update { data.copy() }
             }
         })
-        stageJobs.add(launchIO {
+        stageJobs.add(ioScope.launch {
             stageManager.rtcDataList.collect { dataList ->
                 _stageRTCDataList.update { dataList.map { it.copy() } }
             }
@@ -596,7 +729,14 @@ class StageRepository(
         oldManager.stopPublishing()
     }
 
-    private fun createStageEventJob() = launchIO {
+    /**
+     * Observes the currently connected stage and delivers updates to the UI.
+     * The function returns a [Job] that can be terminated when requested f.e. when switching
+     * the currently active stage by scrolling or some other event. It's necessary to terminate
+     * this coroutine to escape memory leaks and ensure that only the currently connected stage is
+     * observed.
+     */
+    private fun createStageEventJob() = ioScope.launch {
         stageManager.onEvent.collect { event ->
             Timber.d("Stage event received - $event")
             when (event) {
@@ -732,7 +872,14 @@ class StageRepository(
         }
     }
 
-    private fun createOnSeatsUpdatedJob() = launchIO {
+    /**
+     * Observes the currently connected stage audio seats and delivers updates to the UI.
+     * The function returns a [Job] that can be terminated when requested f.e. when switching
+     * the currently active stage by scrolling or some other event. It's necessary to terminate
+     * this coroutine to escape memory leaks and ensure that only the currently connected stage is
+     * observed.
+     */
+    private fun createOnSeatsUpdatedJob() = ioScope.launch {
         chatManager.onSeatsUpdated.collect { seats ->
             Timber.d("Seats collected: $seats")
             availableStages.updateSeats(currentPosition, stageManager, ::getParticipantAttributes, seats)
@@ -741,7 +888,14 @@ class StageRepository(
         }
     }
 
-    private fun createOnModeChangedJob() = launchIO {
+    /**
+     * Observes the currently connected stage mode and delivers updates to the UI.
+     * The function returns a [Job] that can be terminated when requested f.e. when switching
+     * the currently active stage by scrolling or some other event. It's necessary to terminate
+     * this coroutine to escape memory leaks and ensure that only the currently connected stage is
+     * observed.
+     */
+    private fun createOnModeChangedJob() = ioScope.launch {
         chatManager.onModeChanged.collect { mode ->
             val currentStage = availableStages.getOrNull(currentPosition) ?: return@collect
             Timber.d("Stage mode changed to $mode")

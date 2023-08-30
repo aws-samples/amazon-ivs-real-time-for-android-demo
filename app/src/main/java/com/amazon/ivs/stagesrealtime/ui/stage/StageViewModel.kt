@@ -3,11 +3,12 @@ package com.amazon.ivs.stagesrealtime.ui.stage
 import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.ViewModel
+import com.amazon.ivs.stagesrealtime.common.DEFAULT_DIALOG_DISMISS_DELAY
 import com.amazon.ivs.stagesrealtime.common.DEFAULT_LOADING_DELAY
 import com.amazon.ivs.stagesrealtime.common.SHAKE_FORCE_THRESHOLD
 import com.amazon.ivs.stagesrealtime.common.VOTE_SESSION_TIME_SECONDS
 import com.amazon.ivs.stagesrealtime.common.extensions.launch
-import com.amazon.ivs.stagesrealtime.common.extensions.launchIO
+import com.amazon.ivs.stagesrealtime.di.IOScope
 import com.amazon.ivs.stagesrealtime.repository.StageRepository
 import com.amazon.ivs.stagesrealtime.repository.models.PKModeScore
 import com.amazon.ivs.stagesrealtime.repository.networking.models.StageMode
@@ -17,6 +18,7 @@ import com.amazon.ivs.stagesrealtime.ui.stage.models.PKVotingEnd
 import com.amazon.ivs.stagesrealtime.ui.stage.models.RTCDataUIItemModel
 import com.amazon.ivs.stagesrealtime.ui.stage.models.ScrollDirection
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -33,7 +36,8 @@ private const val RTC_REFRESH_DELTA = 1000L // 1 second
 
 @HiltViewModel
 class StageViewModel @Inject constructor(
-    private val repository: StageRepository
+    private val repository: StageRepository,
+    @IOScope private val ioScope: CoroutineScope
 ) : ViewModel() {
     private var timerPKVoteJob: Job? = null
     private var timerEnabled = false
@@ -135,7 +139,7 @@ class StageViewModel @Inject constructor(
 
     fun switchAudio() = repository.switchAudio()
 
-    fun switchFacing() = repository.switchFacing()
+    fun switchFacing() = launch { repository.switchFacing() }
 
     fun isCurrentStageVideo() = repository.isCurrentStageVideo()
 
@@ -230,7 +234,7 @@ class StageViewModel @Inject constructor(
 
     fun shouldCloseFeed(closeFeed: Boolean) = launch {
         // Workaround for waiting of dismissal of the bottom sheet
-        delay(500)
+        delay(DEFAULT_DIALOG_DISMISS_DELAY)
         _onCloseFeed.send(closeFeed)
     }
 
@@ -267,7 +271,7 @@ class StageViewModel @Inject constructor(
                 _onPKVotingEnd.send(PKVotingEnd.Nothing)
                 return@collect
             }
-            timerPKVoteJob = launchIO {
+            timerPKVoteJob = ioScope.launch {
                 var remainedTime = onVoteStart.secondsRemaining
                 while (true) {
                     _pkVoteTimer.update { remainedTime }
@@ -280,11 +284,9 @@ class StageViewModel @Inject constructor(
                             guestScore > hostScore -> _onPKVotingEnd.send(
                                 PKVotingEnd.GuestWon(repository.getPKModeWinnerAvatar(hostWin = false))
                             )
-
                             guestScore < hostScore -> _onPKVotingEnd.send(
                                 PKVotingEnd.HostWon(repository.getPKModeWinnerAvatar(hostWin = true))
                             )
-
                             else -> _onPKVotingEnd.send(PKVotingEnd.Draw)
                         }
                         this.cancel()

@@ -8,7 +8,6 @@ import androidx.core.content.PermissionChecker
 import java.util.*
 
 class PermissionHandler(private val context: AppCompatActivity) {
-
     private val permissionRequestHistory = hashMapOf<Int, (a: Boolean) -> Unit>()
 
     private fun hasCameraPermission(): Boolean =

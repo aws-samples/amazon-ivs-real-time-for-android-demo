@@ -1,3 +1,5 @@
+@file:Suppress("LocalVariableName")
+
 package com.amazon.ivs.stagesrealtime.repository.networking.models
 
 import android.view.View
@@ -37,6 +39,10 @@ fun MutableList<StageUIModel>.updateOrAdd(stageId: String, stages: List<StageRes
     }
 }
 
+/**
+ * A convenient function to update the current [StageUIModel] by modifying ONLY the values that are not null
+ * given the index for the stage in the list.
+ */
 fun MutableList<StageUIModel>.update(
     index: Int,
     keepCreatorVideo: Boolean = true,
@@ -120,10 +126,10 @@ fun MutableList<StageUIModel>.update(
     Timber.e(e, "Failed to update current stage")
 }
 
-fun MutableList<StageUIModel>.updateSeats(
+suspend fun MutableList<StageUIModel>.updateSeats(
     index: Int,
     stageManager: StageManager,
-    getParticipantAttributes: (String) -> ParticipantAttributes?,
+    getParticipantAttributes: suspend (String) -> ParticipantAttributes?,
     seatIds: List<String>? = null
 ) {
     getOrNull(index)?.let { stage ->

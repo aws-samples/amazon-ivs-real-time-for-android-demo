@@ -6,7 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.amazon.ivs.stagesrealtime.common.PermissionHandler
 import com.amazon.ivs.stagesrealtime.common.extensions.getCurrentFragment
 import com.amazon.ivs.stagesrealtime.databinding.ActivityMainBinding
-import com.amazon.ivs.stagesrealtime.ui.welcome.CreateJoinStageFragment
+import com.amazon.ivs.stagesrealtime.ui.lobby.LobbyFragment
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -18,6 +18,12 @@ class MainActivity : AppCompatActivity() {
         val binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        /*
+            NOTE: for the sample application, we have simplified the checking of permissions
+            to be done all at startup,
+            but you should do this process whenever the user gets to the features needing these
+            and handle those flows gracefully in your production applications.
+         */
         permissionHandler.checkPermissions()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -39,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         when (val currentFragment = getCurrentFragment()) {
             is BackHandler -> currentFragment.handleBackPress()
-            is CreateJoinStageFragment -> finish()
+            is LobbyFragment -> finish()
         }
         return false
     }

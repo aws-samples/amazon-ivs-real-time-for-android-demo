@@ -26,21 +26,20 @@
         android:weightSum="2">
 
         <TextView
-            android:id="@+id/name"
             style="@style/TextStyle.DebugData"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:drawablePadding="@dimen/padding_small"
             android:text="@{dataName}"
             android:textColor="@color/gray_data"
-            app:layout_constraintEnd_toStartOf="@id/value"
+            app:layout_constraintEnd_toStartOf="@id/data_value_text"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="@string/latency" />
 
         <TextView
-            android:id="@+id/value"
+            android:id="@+id/data_value_text"
             style="@style/TextStyle.DebugData"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

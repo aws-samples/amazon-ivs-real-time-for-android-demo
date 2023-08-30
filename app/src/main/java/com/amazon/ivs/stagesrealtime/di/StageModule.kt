@@ -2,8 +2,10 @@ package com.amazon.ivs.stagesrealtime.di
 
 import android.content.Context
 import com.amazon.ivs.stagesrealtime.repository.*
-import com.amazon.ivs.stagesrealtime.repository.chat.ChatManager
-import com.amazon.ivs.stagesrealtime.repository.networking.NetworkClient
+import com.amazon.ivs.stagesrealtime.repository.stage.usecases.CreateStageUseCase
+import com.amazon.ivs.stagesrealtime.repository.stage.usecases.CreateStageUseCaseImpl
+import com.amazon.ivs.stagesrealtime.repository.stage.usecases.JoinStageUseCase
+import com.amazon.ivs.stagesrealtime.repository.stage.usecases.JoinStageUseCaseImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,26 +18,17 @@ import javax.inject.Singleton
 object StageModule {
     @Provides
     @Singleton
-    fun provideStageRepository(
-        @ApplicationContext context: Context,
-        preferenceProvider: PreferenceProvider,
-        networkClient: NetworkClient,
-        chatManager: ChatManager
-    ) = StageRepository(context, preferenceProvider, networkClient, chatManager)
+    fun provideAppSettingsStore(@ApplicationContext context: Context) = context.appSettingsStore
 
     @Provides
     @Singleton
-    fun providePreferenceProvider(
-        @ApplicationContext context: Context
-    ) = PreferenceProvider(context)
+    fun provideStageRepository(repository: StageRepositoryImpl): StageRepository = repository
 
     @Provides
     @Singleton
-    fun provideNetworkClient(
-        preferenceProvider: PreferenceProvider
-    ) = NetworkClient(preferenceProvider)
+    fun provideCreateStageUseCase(useCase: CreateStageUseCaseImpl): CreateStageUseCase = useCase
 
-    @Singleton
     @Provides
-    fun provideChatManager() = ChatManager()
+    @Singleton
+    fun provideJoinStageUseCase(useCase: JoinStageUseCaseImpl): JoinStageUseCase = useCase
 }

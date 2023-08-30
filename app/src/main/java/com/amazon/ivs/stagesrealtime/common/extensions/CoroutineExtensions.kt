@@ -6,14 +6,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
 
-private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 private val mainScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-
-
-fun launchIO(block: suspend CoroutineScope.() -> Unit) = ioScope.launch(
-    context = CoroutineExceptionHandler { _, e -> Timber.w(e, "Coroutine failed: ${e.localizedMessage}") },
-    block = block
-)
 
 fun launchMain(block: suspend CoroutineScope.() -> Unit) = mainScope.launch(
     context = CoroutineExceptionHandler { _, e -> Timber.w(e, "Coroutine failed: ${e.localizedMessage}") },
@@ -38,7 +31,7 @@ fun ViewModel.launch(block: suspend CoroutineScope.() -> Unit) = viewModelScope.
     block = block
 )
 
-fun <T> Fragment.collect(
+fun <T> Fragment.collectLatestWithLifecycle(
     flow: Flow<T>,
     lifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     collectLatest: suspend (T) -> Unit
@@ -51,3 +44,22 @@ fun <T> Fragment.collect(
 fun <T> MutableStateFlow<List<T>>.updateList(block: MutableList<T>.() -> Unit) = update {
     it.toMutableList().apply(block = block)
 }
+
+suspend fun <T : Any> runCancellableCatching(
+    tryBlock: suspend () -> T,
+    errorBlock: suspend (e: Exception) -> T,
+): T = try {
+    tryBlock()
+} catch (e: Exception) {
+    // If the coroutine was cancelled - let the error flow upstream to be handled properly
+    if (e is CancellationException) throw e
+    val failure = errorBlock(e)
+    Timber.e(e, "Caught error with ${failure::class.qualifiedName}")
+    failure
+}
+
+fun <T> Flow<T>.asStateFlow(
+    coroutineScope: CoroutineScope,
+    initialValue: T,
+    sharingStarted: SharingStarted = SharingStarted.WhileSubscribed(5000),
+) = stateIn(coroutineScope, sharingStarted, initialValue)
