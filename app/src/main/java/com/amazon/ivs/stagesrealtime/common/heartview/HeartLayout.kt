@@ -7,7 +7,6 @@ import android.widget.RelativeLayout
 import com.amazon.ivs.stagesrealtime.R
 
 class HeartLayout : RelativeLayout {
-
     private lateinit var animator: PathOutSlowAnimator
 
     constructor(context: Context?) : super(context!!) {

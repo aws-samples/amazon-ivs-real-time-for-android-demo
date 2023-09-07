@@ -19,7 +19,6 @@ private val adapterDiff = object : DiffUtil.ItemCallback<RTCDataUIItemModel>() {
 }
 
 class RTCDataAdapter : ListAdapter<RTCDataUIItemModel, RTCDataAdapter.ViewHolder>(adapterDiff) {
-
     inner class ViewHolder(val binding: ItemStreamDataBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =

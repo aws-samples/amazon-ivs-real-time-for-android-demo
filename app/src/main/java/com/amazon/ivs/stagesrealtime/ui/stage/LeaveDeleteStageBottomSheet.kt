@@ -10,6 +10,7 @@ import com.amazon.ivs.stagesrealtime.databinding.BottomSheetLeaveDeleteStageBind
 import com.amazon.ivs.stagesrealtime.ui.stage.models.LeaveDeleteStageMode
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 
 @AndroidEntryPoint
 class LeaveDeleteStageBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_leave_delete_stage) {
@@ -33,6 +34,7 @@ class LeaveDeleteStageBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sh
                         }
                         viewModel.shouldCloseFeed(navArgs.shouldCloseFeed)
                         dismissNow()
+                        Timber.d("Leave stage, close feed: ${navArgs.shouldCloseFeed}")
                     }
                 }
                 LeaveDeleteStageMode.KICK_USER -> {
@@ -50,6 +52,7 @@ class LeaveDeleteStageBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sh
                         viewModel.deleteStage()
                         viewModel.shouldCloseFeed(navArgs.shouldCloseFeed)
                         dismissNow()
+                        Timber.d("End stage, close feed: ${navArgs.shouldCloseFeed}")
                     }
                 }
             }

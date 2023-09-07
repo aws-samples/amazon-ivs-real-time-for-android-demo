@@ -45,7 +45,6 @@
     <string name="network_limited_time">Network-limited time</string>
     <string name="packet_loss">Packets lost</string>
     <string name="sdk_version">SDK version</string>
-    <string name="sdk_version_value">1.8.0</string>
     <string name="ms_template">%1$sms</string>
     <string name="s_template">%1$ss</string>
     <string name="percentage_template">%1$s\%%</string>
@@ -57,4 +56,6 @@
     <string name="maximum_bitrate">Maximum bitrate</string>
     <string name="scan_qr_code_using_camera">Scan QR code using camera</string>
     <string name="log_in_with_qr_code">Log in with QR code</string>
+    <string name="simulcast">Simulcast</string>
+    <string name="auto">Auto</string>
 </resources>

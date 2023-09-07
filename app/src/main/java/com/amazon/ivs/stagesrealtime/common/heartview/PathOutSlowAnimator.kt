@@ -11,8 +11,6 @@ import com.amazon.ivs.stagesrealtime.common.extensions.launchMain
 import java.util.Random
 import kotlin.math.abs
 
-// Second variation of new heart animation, that has more flexibility
-// TODO code could be improved
 class PathOutSlowAnimator(private val configuration: HeartConfig) {
 
     private val xPathValuesBeforeSlow = mutableMapOf<View, Float>()

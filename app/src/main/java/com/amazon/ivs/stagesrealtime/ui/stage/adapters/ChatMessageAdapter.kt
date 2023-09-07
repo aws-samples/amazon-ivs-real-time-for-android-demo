@@ -20,7 +20,6 @@ private val adapterDiff = object : DiffUtil.ItemCallback<ChatUIMessage>() {
 }
 
 class ChatMessageAdapter : ListAdapter<ChatUIMessage, RecyclerView.ViewHolder>(adapterDiff) {
-
     override fun getItemViewType(position: Int) =
         when (currentList[position]) {
             is ChatUIMessage.UserMessage -> ChatMessageType.USER_MESSAGE.ordinal

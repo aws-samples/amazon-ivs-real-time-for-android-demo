@@ -1,4 +1,4 @@
-package com.amazon.ivs.stagesrealtime.ui.welcome
+package com.amazon.ivs.stagesrealtime.ui.lobby
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.amazon.ivs.stagesrealtime.R
-import com.amazon.ivs.stagesrealtime.common.extensions.collect
+import com.amazon.ivs.stagesrealtime.common.extensions.collectLatestWithLifecycle
 import com.amazon.ivs.stagesrealtime.common.extensions.fadeAlpha
 import com.amazon.ivs.stagesrealtime.common.extensions.navController
 import com.amazon.ivs.stagesrealtime.common.extensions.showErrorBar
@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
 @AndroidEntryPoint
 class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
     private val binding by viewBinding(FragmentScannerBinding::bind)
-    private val viewModel by viewModels<WelcomeViewModel>()
+    private val viewModel by viewModels<LobbyViewModel>()
 
     private val cameraSelector by lazy {
         CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
@@ -59,7 +59,7 @@ class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
     }
 
     private fun setupCollectors() = with(binding) {
-        collect(viewModel.onCustomerCodeSet) { isSet ->
+        collectLatestWithLifecycle(viewModel.onCustomerCodeSet) { isSet ->
             Timber.d("Valid api key and code received - $isSet")
             processingBarcode = false
             if (isSet) {
@@ -70,7 +70,7 @@ class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
             }
         }
 
-        collect(viewModel.onLoading) { isLoading ->
+        collectLatestWithLifecycle(viewModel.isLoading) { isLoading ->
             binding.loadingView.root.fadeAlpha(isLoading)
         }
     }

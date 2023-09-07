@@ -14,7 +14,6 @@ private const val ALPHA_VISIBLE = 1f
 private const val ALPHA_GONE = 0f
 
 class ChatItemAnimator : DefaultItemAnimator() {
-
     override fun canReuseUpdatedViewHolder(holder: RecyclerView.ViewHolder) = false
 
     override fun animateAppearance(

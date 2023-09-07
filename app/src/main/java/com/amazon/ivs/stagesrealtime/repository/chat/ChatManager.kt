@@ -9,10 +9,10 @@ import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_RIGHT
 import com.amazon.ivs.stagesrealtime.common.VOTE_SESSION_TIME_SECONDS
 import com.amazon.ivs.stagesrealtime.common.extensions.asObject
 import com.amazon.ivs.stagesrealtime.common.extensions.asPKModeScore
-import com.amazon.ivs.stagesrealtime.common.extensions.launchIO
 import com.amazon.ivs.stagesrealtime.common.extensions.launchMain
 import com.amazon.ivs.stagesrealtime.common.extensions.toJson
 import com.amazon.ivs.stagesrealtime.common.extensions.updateList
+import com.amazon.ivs.stagesrealtime.di.IOScope
 import com.amazon.ivs.stagesrealtime.repository.models.PKModeScore
 import com.amazon.ivs.stagesrealtime.repository.models.PKModeSessionTime
 import com.amazon.ivs.stagesrealtime.repository.models.UserAvatar
@@ -29,6 +29,7 @@ import com.amazonaws.ivs.chat.messaging.entities.DeleteMessageEvent
 import com.amazonaws.ivs.chat.messaging.entities.DisconnectUserEvent
 import com.amazonaws.ivs.chat.messaging.logger.ChatLogLevel
 import com.amazonaws.ivs.chat.messaging.requests.SendMessageRequest
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -37,9 +38,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
-class ChatManager {
+class ChatManager @Inject constructor(
+    @IOScope private val ioScope: CoroutineScope
+) {
     private var chatRoom: ChatRoom? = null
     private var roomListener: ChatRoomListener? = null
     private var localUserId: String? = null
@@ -140,7 +145,7 @@ class ChatManager {
                     val messageAttributes = message.attributes!!.asObject<ChatMessageAttributes>()
                     when (messageAttributes.type) {
                         likeMessageAttributes.type -> {
-                            launchIO {
+                            ioScope.launch {
                                 _onStageLike.send(Unit)
                             }
                         }

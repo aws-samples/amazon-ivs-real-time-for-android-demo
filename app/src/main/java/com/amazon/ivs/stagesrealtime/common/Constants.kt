@@ -6,6 +6,7 @@ import com.amazon.ivs.stagesrealtime.ui.stage.models.AudioSeatUIModel
 
 const val REQUEST_TIMEOUT = 30L
 const val DEFAULT_LOADING_DELAY = 200L
+const val DEFAULT_DIALOG_DISMISS_DELAY = 500L
 const val DEFAULT_SCROLLING_DELAY = 1000L
 const val DEFAULT_COLOR_BOTTOM = "#4ABBAE"
 const val DEFAULT_COLOR_LEFT = "#000000"

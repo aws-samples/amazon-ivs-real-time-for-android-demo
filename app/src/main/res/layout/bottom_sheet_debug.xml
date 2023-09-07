@@ -104,9 +104,10 @@
                 <include layout="@layout/view_line_separator" />
 
                 <include
+                    android:id="@+id/sdk_version_participant"
                     layout="@layout/item_debug_data"
                     app:dataName='@{@string/sdk_version}'
-                    app:dataValue='@{@string/sdk_version_value}' />
+                    app:dataValue='@{"-"}' />
 
             </LinearLayout>
 
@@ -137,9 +138,10 @@
                     <include layout="@layout/view_line_separator" />
 
                     <include
+                        android:id="@+id/sdk_version"
                         layout="@layout/item_debug_data"
                         app:dataName='@{@string/sdk_version}'
-                        app:dataValue='@{@string/sdk_version_value}' />
+                        app:dataValue='@{"-"}' />
 
                 </LinearLayout>
 

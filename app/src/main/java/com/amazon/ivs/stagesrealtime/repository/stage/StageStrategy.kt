@@ -1,10 +1,12 @@
 package com.amazon.ivs.stagesrealtime.repository.stage
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import com.amazon.ivs.stagesrealtime.common.RMS_SPEAKING_THRESHOLD
 import com.amazon.ivs.stagesrealtime.common.extensions.asObject
 import com.amazon.ivs.stagesrealtime.common.extensions.setVisibleOr
 import com.amazon.ivs.stagesrealtime.common.extensions.updateList
+import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.amazon.ivs.stagesrealtime.repository.models.CandidatePairData
 import com.amazon.ivs.stagesrealtime.repository.models.ParticipantAttributes
 import com.amazon.ivs.stagesrealtime.repository.models.QualityLimitationDurationData
@@ -31,11 +33,15 @@ import com.amazonaws.ivs.broadcast.StageVideoConfiguration
 import com.amazonaws.ivs.broadcast.SurfaceSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import org.json.JSONObject
 import timber.log.Timber
 
-class StageStrategy(context: Context, private val bitrate: Int) {
+class StageStrategy(
+    context: Context,
+    private val appSettingsStore: DataStore<AppSettings>
+) {
     private val deviceDiscovery = DeviceDiscovery(context)
     private val streams = mutableListOf<LocalStageStream>()
     
@@ -83,7 +89,7 @@ class StageStrategy(context: Context, private val bitrate: Int) {
         override fun shouldSubscribeToParticipant(stage: Stage, info: ParticipantInfo) = subscribeType
     }
 
-    fun setup(type: StageType, isParticipating: Boolean, isCreator: Boolean, mode: StageMode = StageMode.NONE) {
+    suspend fun setup(type: StageType, isParticipating: Boolean, isCreator: Boolean, mode: StageMode = StageMode.NONE) {
         _currentMode = mode
         _isParticipating = isParticipating
         subscribeType = when {
@@ -115,7 +121,7 @@ class StageStrategy(context: Context, private val bitrate: Int) {
         }
     }
 
-    fun switchFacing() {
+    suspend fun switchFacing() {
         videoDevice?.let { currentDevice ->
             val wasMuted = isVideoOff
             _preview?.setVisibleOr(false)
@@ -124,7 +130,9 @@ class StageStrategy(context: Context, private val bitrate: Int) {
             currentFacing = if (currentFacing == Position.FRONT) Position.BACK else Position.FRONT
             getDevice(DeviceType.CAMERA, currentFacing)?.let { device ->
                 Timber.d("Camera device has been switched to $currentFacing")
-                videoDevice = ImageLocalStageStream(device)
+                videoDevice = ImageLocalStageStream(device, StageVideoConfiguration().apply {
+                    simulcast.isEnabled = isSimulcastEnabled()
+                })
                 videoDevice!!.muted = wasMuted
                 videoDevice?.setListener(createRTCStatsListenerObject())
                 streams.add(videoDevice!!)
@@ -202,6 +210,9 @@ class StageStrategy(context: Context, private val bitrate: Int) {
         }
     }
 
+    private suspend fun isSimulcastEnabled() = appSettingsStore.data.first().isSimulcastEnabled
+    private suspend fun getBitrate() = appSettingsStore.data.first().bitrate
+
     private fun collectRTCData(
         stats: Map<String, Map<String, String>>?,
         isForViewer: Boolean = false
@@ -244,7 +255,7 @@ class StageStrategy(context: Context, private val bitrate: Int) {
         }
     }
 
-    private fun setupStreams(isAudioEnabled: Boolean, isVideoEnabled: Boolean, type: StageType) {
+    private suspend fun setupStreams(isAudioEnabled: Boolean, isVideoEnabled: Boolean, type: StageType) {
         streams.clear()
         audioDevice?.setStatsCallback(null)
         audioDevice?.setListener(null)
@@ -267,8 +278,15 @@ class StageStrategy(context: Context, private val bitrate: Int) {
         if (isVideoEnabled) {
             getDevice(DeviceType.CAMERA, currentFacing)?.let { device ->
                 videoDevice = ImageLocalStageStream(device, StageVideoConfiguration().apply {
+                    val bitrate = getBitrate()
+                    val isSimulcastEnabled = isSimulcastEnabled()
                     Timber.d("Max bitrate set: $bitrate")
-                    maxBitrate = bitrate
+                    simulcast.isEnabled = isSimulcastEnabled
+
+                    // Enabling simulcast means the bitrate is automatically managed
+                    if (!isSimulcastEnabled) {
+                        maxBitrate = bitrate
+                    }
                 })
                 videoDevice?.muted = isVideoOff
                 if (type == StageType.VIDEO) {

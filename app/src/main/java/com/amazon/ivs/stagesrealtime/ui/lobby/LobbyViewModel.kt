@@ -1,65 +1,69 @@
-package com.amazon.ivs.stagesrealtime.ui.welcome
+package com.amazon.ivs.stagesrealtime.ui.lobby
 
+import androidx.datastore.core.DataStore
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.amazon.ivs.stagesrealtime.common.DEFAULT_LOADING_DELAY
+import com.amazon.ivs.stagesrealtime.common.extensions.asStateFlow
 import com.amazon.ivs.stagesrealtime.common.extensions.launch
 import com.amazon.ivs.stagesrealtime.common.getNewStageId
 import com.amazon.ivs.stagesrealtime.common.getNewUserAvatar
 import com.amazon.ivs.stagesrealtime.repository.StageRepository
+import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.amazon.ivs.stagesrealtime.repository.models.CreateStageMode
 import com.amazon.ivs.stagesrealtime.repository.models.ParticipantMode
 import com.amazon.ivs.stagesrealtime.repository.networking.models.StageType
 import com.amazon.ivs.stagesrealtime.repository.networking.models.requests.Error
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import timber.log.Timber
 import javax.inject.Inject
-import kotlin.properties.Delegates
 
 @HiltViewModel
-class WelcomeViewModel @Inject constructor(
-    private val repository: StageRepository
+class LobbyViewModel @Inject constructor(
+    private val repository: StageRepository,
+    private val appSettingsStore: DataStore<AppSettings>
 ) : ViewModel() {
-    private val _userName = MutableStateFlow(repository.stageId)
     private val _onSignedIn = Channel<Unit>()
     private val _onSignedOut = Channel<Unit>()
     private val _onError = Channel<Error>()
     private val _onCustomerCodeSet = Channel<Boolean>()
     private val _onNavigateToStage = Channel<Pair<ParticipantMode, CreateStageMode>>()
-    private val _onLoading = MutableSharedFlow<Boolean>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val _isLoading = MutableStateFlow(false)
 
-    var bitrate by Delegates.observable(repository.bitrate) { _, _, bitrate ->
-        repository.bitrate = bitrate
-    }
-
-    val userName = _userName.asStateFlow()
     val onSignedIn = _onSignedIn.receiveAsFlow()
     val onSignedOut = _onSignedOut.receiveAsFlow()
     val onCustomerCodeSet = _onCustomerCodeSet.receiveAsFlow()
     val onNavigateToStage = _onNavigateToStage.receiveAsFlow()
     val onError = _onError.receiveAsFlow()
-    val onLoading = _onLoading.asSharedFlow()
+    val isLoading = _isLoading.asStateFlow()
+    val appSettings = appSettingsStore.data.onEach { settings ->
+        if (settings.customerCode == null) {
+            repository.destroyApi()
+        }
+    }.asStateFlow(viewModelScope, AppSettings())
 
-    fun refreshUserName() {
+    fun refreshUserName() = launch {
         val name = getNewStageId()
         val userAvatar = getNewUserAvatar()
-        repository.stageId = name
-        repository.userAvatar = userAvatar
-        _userName.value = name
+        appSettingsStore.updateData { it.copy(stageId = name, userAvatar = userAvatar) }
     }
 
     fun silentSignIn() = launch {
-        val isLoading = _onLoading.replayCache.firstOrNull() ?: false
-        if (repository.customerCode != null && repository.apiKey != null && !isLoading) {
-            Timber.d("Silent sign in")
+        val appSettings = appSettingsStore.data.first()
+        Timber.d("Attempting silent sign in: $appSettings")
+        if (appSettings.customerCode != null && appSettings.apiKey != null && !_isLoading.value) {
+            Timber.d("Silent sign in: ${appSettings.customerCode}-${appSettings.apiKey}")
             _onSignedIn.send(Unit)
+        } else {
+            Timber.d("No silent sign in")
         }
     }
 
@@ -81,41 +85,49 @@ class WelcomeViewModel @Inject constructor(
         }
     }
 
+    fun changeBitrate(newBitrate: Int) = launch {
+        appSettingsStore.updateData { it.copy(bitrate = newBitrate) }
+    }
+
+    fun changeIsSimulcastEnabled(isSimulcastEnabled: Boolean) = launch {
+        appSettingsStore.updateData { it.copy(isSimulcastEnabled = isSimulcastEnabled) }
+    }
+
     fun onSignOut() = launch {
-        repository.customerCode = null
+        appSettingsStore.updateData { it.copy(customerCode = null) }
         _onSignedOut.send(Unit)
     }
 
     fun onJoinStage() = launch {
-        _onLoading.tryEmit(true)
+        _isLoading.update { true }
         val response = repository.verifyConnectionCode()
         response.onFailure { error ->
             Timber.d("Failed to sign in: $error")
-            _onLoading.tryEmit(false)
+            _isLoading.update { false }
             delay(DEFAULT_LOADING_DELAY)
             _onError.send(Error.CustomerCodeError)
         }
         response.onSuccess {
             Timber.d("Signed in")
-            _onLoading.tryEmit(false)
+            _isLoading.update { false }
             delay(DEFAULT_LOADING_DELAY)
             _onNavigateToStage.send(Pair(ParticipantMode.VIEWER, CreateStageMode.NONE))
         }
     }
 
     fun onCreateStage(mode: CreateStageMode) = launch {
-        _onLoading.tryEmit(true)
+        _isLoading.update { true }
         val type = if (mode == CreateStageMode.VIDEO) StageType.VIDEO else StageType.AUDIO
         val response = repository.createStage(type)
         response.onFailure { error ->
             Timber.d("Create stage failed: $error")
-            _onLoading.tryEmit(false)
+            _isLoading.update { false }
             delay(DEFAULT_LOADING_DELAY)
             _onError.send(error)
         }
         response.onSuccess {
             Timber.d("Stage created")
-            _onLoading.tryEmit(false)
+            _isLoading.update { false }
             delay(DEFAULT_LOADING_DELAY)
             _onNavigateToStage.send(Pair(ParticipantMode.CREATOR, mode))
         }
@@ -129,23 +141,22 @@ class WelcomeViewModel @Inject constructor(
         }
 
         Timber.d("Verifying $customerCode and $apiKey")
-        _onLoading.tryEmit(true)
-        repository.customerCode = customerCode
-        repository.apiKey = apiKey
+        _isLoading.update { true }
+        appSettingsStore.updateData { it.copy(customerCode = customerCode, apiKey = apiKey) }
+
         val response = repository.verifyConnectionCode()
         response.onFailure { error ->
             Timber.d("Failed to verify customer code or api key: $error")
-            _onLoading.tryEmit(false)
-            repository.customerCode = null
-            repository.apiKey = null
+            _isLoading.update { false }
+            appSettingsStore.updateData { it.copy(customerCode = null, apiKey = null) }
             delay(DEFAULT_LOADING_DELAY)
             _onCustomerCodeSet.send(false)
         }
         response.onSuccess {
             Timber.d("Customer code and api key are valid!")
-            _onLoading.tryEmit(false)
+            _isLoading.update { false }
             delay(DEFAULT_LOADING_DELAY)
-            repository.userAvatar = getNewUserAvatar()
+            appSettingsStore.updateData { it.copy(userAvatar = getNewUserAvatar()) }
             _onCustomerCodeSet.send(true)
             _onSignedIn.send(Unit)
         }

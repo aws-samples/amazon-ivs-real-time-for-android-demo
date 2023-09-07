@@ -3,11 +3,6 @@ package com.amazon.ivs.stagesrealtime.ui.stage
 import android.animation.Animator
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
-import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.MotionEvent
@@ -28,7 +23,6 @@ import androidx.core.view.marginTop
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.navigation.fragment.findNavController
 import com.amazon.ivs.stagesrealtime.R
 import com.amazon.ivs.stagesrealtime.common.*
 import com.amazon.ivs.stagesrealtime.common.extensions.*
@@ -45,8 +39,6 @@ import com.amazon.ivs.stagesrealtime.ui.stage.models.StageUIModel
 import kotlinx.coroutines.delay
 import timber.log.Timber
 import java.util.*
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 private const val TRANSITION_THRESHOLD = 500
 private const val CHAT_UPDATE_DELTA = 200L
@@ -63,43 +55,17 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
     private var wasMessageSent = false
     private var isKeyboardVisible = false
     private var isPKMode = false
-    private var sensorManager: SensorManager? = null
     private val pkAnimators = mutableListOf<Animator>()
-    private val sensorEventListener = object : SensorEventListener {
-        private var lastShakeTime = 0L
-        private var shakeCount = 0
-
-        override fun onSensorChanged(event: SensorEvent?) {
-            if (event != null) {
-                val x = event.values[0]
-                val y = event.values[1]
-                val z = event.values[2]
-                val force = sqrt(x.pow(2) + y.pow(2) + z.pow(2)) - SensorManager.GRAVITY_EARTH
-
-                val currentShakeTime = System.currentTimeMillis()
-                val shakeDelta = currentShakeTime - lastShakeTime
-                if (shakeDelta > SHAKE_TIME_THRESHOLD) {
-                    if (force > 1) {
-                        Timber.d("Shake detected: $force, count: $shakeCount")
-                    }
-                    if (viewModel.shouldShowDebugData(force)) {
-                        shakeCount++
-                        if (shakeCount > SHAKE_COUNT_THRESHOLD) {
-                            shakeCount = 0
-                            Timber.d("Show debug menu")
-                            findNavController().noDuplicateNavigate(R.id.navigation_debug_bottom_sheet)
-                        }
-                    } else {
-                        shakeCount = 0
-                    }
-                    lastShakeTime = currentShakeTime
-                }
-            }
-        }
-
-        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) { /* Ignored */ }
+    private val debugShakeSensor by lazy {
+        DebugShakeSensor(
+            isEnabled = { force -> viewModel.shouldShowDebugData(force) },
+            onShaken = {
+                Timber.d("Show debug menu")
+                navigate(StageFragmentDirections.openDebugSheet())
+            },
+            context = requireActivity()
+        )
     }
-
     private val onGlobalLayoutListener = OnGlobalLayoutListener {
         if (binding.root.isKeyboardVisible() == true && !isKeyboardVisible) {
             Timber.d("Keyboard appeared")
@@ -115,6 +81,7 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        debugShakeSensor.setup(this)
         setupListeners()
         setupCollectors()
     }
@@ -123,18 +90,12 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
         super.onResume()
         viewModel.startCollectingStages()
         binding.root.viewTreeObserver.addOnGlobalLayoutListener(onGlobalLayoutListener)
-        sensorManager?.registerListener(
-            sensorEventListener,
-            sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
     }
 
     override fun onPause() {
         super.onPause()
         viewModel.stopCollectingStages()
         binding.root.viewTreeObserver.removeOnGlobalLayoutListener(onGlobalLayoutListener)
-        sensorManager?.unregisterListener(sensorEventListener)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -270,14 +231,6 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
                 }
             }
         })
-
-        sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        sensorManager?.registerListener(
-            sensorEventListener,
-            sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-            SensorManager.SENSOR_DELAY_NORMAL,
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
     }
 
     private fun temporaryBlockScrolling() {
@@ -293,13 +246,13 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
     }
 
     private fun setupCollectors() {
-        collect(viewModel.pkVoteTimer) { timeRemained ->
+        collectLatestWithLifecycle(viewModel.pkVoteTimer) { timeRemained ->
             binding.stageCenter.videoStage.pkModeTimer.fadeIn()
             binding.stageCenter.videoStage.pkModeTimer.text =
                 getString(R.string.timer_template, timeRemained.toStringWithLeadingZero())
         }
 
-        collect(viewModel.onPKVotingEnd) { onVotingEnd ->
+        collectLatestWithLifecycle(viewModel.onPKVotingEnd) { onVotingEnd ->
             with(binding) {
                 activity?.run {
                     stageCenter.videoStage.pkModeTimer.fadeOut()
@@ -327,18 +280,18 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
             }
         }
 
-        collect(viewModel.onError) { error ->
+        collectLatestWithLifecycle(viewModel.onError) { error ->
             showErrorBar(error.errorResource)
         }
 
-        collect(viewModel.onLoading) { isLoading ->
+        collectLatestWithLifecycle(viewModel.onLoading) { isLoading ->
             Timber.d("Loading changed: $isLoading")
             binding.loadingView.root.fadeAlpha(isLoading)
         }
 
         val defaultGuidePercent = TypedValue()
         resources.getValue(R.integer.pk_mode_guideline_percent, defaultGuidePercent, true)
-        collect(viewModel.pkModeScore) { score ->
+        collectLatestWithLifecycle(viewModel.pkModeScore) { score ->
             with(binding.stageCenter.videoStage) {
                 Timber.d("PK mode score is - $score")
                 val currentLeftScore = binding.stageButtons.voteScoreLeft.text.toString().toIntOrNull() ?: 0
@@ -390,18 +343,18 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
             }
         }
 
-        collect(viewModel.onStageLike) {
+        collectLatestWithLifecycle(viewModel.onStageLike) {
             binding.stageButtons.heartView.addHeart()
         }
 
-        collect(viewModel.onStageDeleted) { isDeleted ->
+        collectLatestWithLifecycle(viewModel.onStageDeleted) { isDeleted ->
             Timber.d("Stage deleted - $isDeleted")
             if (isDeleted) {
                 resetCenterCard()
             }
         }
 
-        collect(viewModel.onCloseFeed) { shouldClose ->
+        collectLatestWithLifecycle(viewModel.onCloseFeed) { shouldClose ->
             Timber.d("Should close feed and navigate back - $shouldClose")
             if (shouldClose) {
                 navController.navigateUp()
@@ -409,8 +362,11 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
         }
 
         var cardMeasured = false
-        collect(viewModel.stages) { stages ->
+        collectLatestWithLifecycle(viewModel.stages) { stages ->
             Timber.d("Received stages: ${stages.stageCount}")
+            if (stages.stageCount == 0 || binding.stages?.stageCenter?.stageId != stages.stageCenter?.stageId) {
+                hideKeyboard()
+            }
             binding.stages = stages
 
             with(binding) {
@@ -485,7 +441,7 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
                 }
             }
         }
-        collect(viewModel.messages) { messages ->
+        collectLatestWithLifecycle(viewModel.messages) { messages ->
             Timber.d("Received messages: $messages")
             with(binding) {
                 stageButtons.chatMessages.suppressLayout(false)

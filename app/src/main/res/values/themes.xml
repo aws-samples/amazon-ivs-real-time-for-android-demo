@@ -82,14 +82,18 @@
     </style>
 
     <style name="SliderStyle" parent="Widget.MaterialComponents.Slider">
-        <item name="thumbColor">@color/orange</item>
         <item name="thumbElevation">0dp</item>
         <item name="thumbRadius">@dimen/slider_thumb_radius</item>
         <item name="tickVisible">false</item>
-        <item name="trackColorActive">@color/orange</item>
-        <item name="trackColorInactive">@color/gray_light</item>
         <item name="trackHeight">@dimen/slider_track_height</item>
         <item name="labelBehavior">gone</item>
+        <item name="materialThemeOverlay">@style/SliderStyle.ThemeOverlay</item>
+    </style>
+
+    <style name="SliderStyle.ThemeOverlay">
+        <item name="colorPrimary">@color/orange</item>
+        <item name="colorOnPrimary">@color/gray_light</item>
+        <item name="colorSurface">@color/gray_light</item>
     </style>
 
     <style name="TextStyle.DebugData" parent="TextStyle">
@@ -186,6 +190,12 @@
         <item name="android:layout_height">@dimen/size_small</item>
         <item name="android:background">@drawable/bg_round_white</item>
         <item name="android:padding">@dimen/margin_tiny</item>
+    </style>
+
+    <style name="Switch" parent="Theme.StagesRealtime">
+        <item name="trackTint">@color/track_color</item>
+        <item name="thumbTint">@color/white</item>
+        <item name="android:background">@null</item>
     </style>
 
 </resources>
