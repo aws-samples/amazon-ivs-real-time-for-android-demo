@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class StageManager(
     private val context: Context,
@@ -45,7 +46,7 @@ class StageManager(
     private var stageType: StageType? = null
 
     // Contains all participants except the local participant
-    private val joinedParticipants = mutableSetOf<ParticipantAttributes>()
+    private val joinedParticipants = ConcurrentLinkedQueue<ParticipantAttributes>()
     private val _onEvent = MutableSharedFlow<StageEvent>(replay = 1)
     private var isCreator = false
     private var isParticipant = false
@@ -460,7 +461,7 @@ class StageManager(
         )
     }
 
-    private fun MutableSet<ParticipantAttributes>.removeAndCancelJob(participantId: String): Boolean {
+    private fun ConcurrentLinkedQueue<ParticipantAttributes>.removeAndCancelJob(participantId: String): Boolean {
         this.find { it.participantId == participantId }?.let { participant ->
             participant.speakingJob?.cancel()
             this.removeAll { it.participantId == participantId }
