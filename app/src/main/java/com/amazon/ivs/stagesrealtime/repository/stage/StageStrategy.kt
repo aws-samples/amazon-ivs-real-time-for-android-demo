@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class StageStrategy(
     context: Context,
@@ -64,7 +65,7 @@ class StageStrategy(
     val isFacingBack get() = currentFacing != Position.FRONT
     val preview get() = _preview
     val currentMode get() = _currentMode
-    var joinedParticipants: Set<ParticipantAttributes> = emptySet()
+    var joinedParticipants = ConcurrentLinkedQueue<ParticipantAttributes>()
     val isLocalUserSpeaking = _isLocalUserSpeaking.asStateFlow()
     val rtcData = _rtcData.asStateFlow()
     val rtcDataList = _rtcDataList.asStateFlow()
@@ -150,7 +151,7 @@ class StageStrategy(
     fun dispose() {
         removeStreams()
         _rtcDataList.updateList { clear() }
-        joinedParticipants = emptySet()
+        joinedParticipants = ConcurrentLinkedQueue()
         deviceDiscovery.release()
         audioDevice?.setStatsCallback(null)
         audioDevice?.setListener(null)
