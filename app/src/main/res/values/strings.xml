@@ -58,4 +58,7 @@
     <string name="log_in_with_qr_code">Log in with QR code</string>
     <string name="simulcast">Simulcast</string>
     <string name="auto">Auto</string>
+    <string name="video_stats">Video stats</string>
+    <string name="video_stats_pattern">[%1$s TTV] [%2$sms]</string>
+    <string name="video_latency_pattern">[%1$sms]</string>
 </resources>

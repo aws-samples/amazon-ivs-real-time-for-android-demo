@@ -99,6 +99,13 @@
                     android:indeterminateDrawable="@drawable/bg_progress_bar"
                     android:visibility="@{(stage.guestVideo == null &amp;&amp; !stage.isGuestVideoOff) ? View.VISIBLE : View.GONE}" />
 
+                <TextView
+                    android:id="@+id/guest_pk_video_stats"
+                    style="@style/TextStyle.VideoStats"
+                    android:visibility="@{stage.isVideoStatsEnabled ? View.VISIBLE : View.GONE}"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
             </FrameLayout>
 
         </LinearLayout>
@@ -410,6 +417,13 @@
                     android:indeterminateDrawable="@drawable/bg_progress_bar"
                     android:visibility="@{(stage.guestVideo == null &amp;&amp; !stage.isGuestVideoOff) ? View.VISIBLE : View.GONE}" />
 
+                <TextView
+                    android:id="@+id/guest_video_stats"
+                    style="@style/TextStyle.VideoStats"
+                    android:visibility="@{stage.isVideoStatsEnabled ? View.VISIBLE : View.GONE}"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
             </androidx.cardview.widget.CardView>
 
         </FrameLayout>
@@ -425,6 +439,24 @@
             android:layout_height="@dimen/height_gradient_up"
             android:background="@drawable/bg_gradient_transparent_up"
             app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:id="@+id/creator_video_stats"
+            style="@style/TextStyle.VideoStats"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="@{stage.isVideoStatsEnabled &amp;&amp; !stage.isPKMode ? View.VISIBLE : View.GONE}" />
+
+        <TextView
+            android:id="@+id/creator_pk_video_stats"
+            style="@style/TextStyle.VideoStats"
+            android:elevation="100dp"
+            android:visibility="@{stage.isVideoStatsEnabled &amp;&amp; stage.isPKMode ? View.VISIBLE : View.GONE}"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="@id/pk_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/anim_guideline" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

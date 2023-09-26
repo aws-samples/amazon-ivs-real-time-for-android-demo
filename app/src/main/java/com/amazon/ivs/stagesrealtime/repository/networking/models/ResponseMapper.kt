@@ -62,6 +62,10 @@ fun MutableList<StageUIModel>.update(
     _isSpeaking: Boolean? = null,
     _isPKMode: Boolean? = null,
     _isAudioMode: Boolean? = null,
+    _guestTTV: String? = null,
+    _guestLatency: String? = null,
+    _creatorTTV: String? = null,
+    _creatorLatency: String? = null,
     _creatorVideo: View? = null,
     _guestVideo: View? = null,
     _creatorAvatar: UserAvatar? = null,
@@ -83,6 +87,10 @@ fun MutableList<StageUIModel>.update(
         val isSpeaking = _isSpeaking ?: stage.isSpeaking
         val isPKMode = _isPKMode ?: stage.isPKMode
         val isAudioMode = _isAudioMode ?: stage.isAudioMode
+        val guestTTV = if (keepGuestVideo) _guestTTV ?: stage.guestTTV else _guestTTV
+        val guestLatency = if (keepGuestVideo) _guestLatency ?: stage.guestLatency else _guestLatency
+        val creatorTTV = if (keepCreatorVideo) _creatorTTV ?: stage.creatorTTV else _creatorTTV
+        val creatorLatency = if (keepCreatorVideo) _creatorLatency ?: stage.creatorLatency else _creatorLatency
         val creatorVideo = if (keepCreatorVideo) _creatorVideo ?: stage.creatorVideo else _creatorVideo
         val guestVideo = if (keepGuestVideo) _guestVideo ?: stage.guestVideo else _guestVideo
         val creatorAvatar = _creatorAvatar ?: stage.creatorAvatar
@@ -97,7 +105,9 @@ fun MutableList<StageUIModel>.update(
                 it.copy()
             }
         }
-        removeAt(index)
+        if (isNotEmpty()) {
+            removeAt(index)
+        }
         add(
             index, stage.copy(
                 isCreator = isCreator,
@@ -114,6 +124,10 @@ fun MutableList<StageUIModel>.update(
                 isSpeaking = isSpeaking,
                 isPKMode = isPKMode,
                 isAudioMode = isAudioMode,
+                guestTTV = guestTTV,
+                guestLatency = guestLatency,
+                creatorTTV = creatorTTV,
+                creatorLatency = creatorLatency,
                 creatorVideo = creatorVideo,
                 guestVideo = guestVideo,
                 creatorAvatar = creatorAvatar,
@@ -171,8 +185,8 @@ fun RTCData.asRTCUIData(isForAudio: Boolean = false) = RTCDataUIItemModel(
     fps = fps,
     packetsLost = packetLoss,
     isForAudio = isForAudio,
-    username = userInfo?.stageId ?: "",
-    participantId = userInfo?.participantId ?: "",
+    username = stageId ?: "",
+    participantId = participantId ?: "",
     isHost = isHostData,
     isGuest = isGuestData
 )

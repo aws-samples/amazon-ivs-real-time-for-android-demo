@@ -7,12 +7,11 @@ import com.amazon.ivs.stagesrealtime.common.extensions.asObject
 import com.amazon.ivs.stagesrealtime.common.extensions.setVisibleOr
 import com.amazon.ivs.stagesrealtime.common.extensions.updateList
 import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
-import com.amazon.ivs.stagesrealtime.repository.models.CandidatePairData
 import com.amazon.ivs.stagesrealtime.repository.models.ParticipantAttributes
 import com.amazon.ivs.stagesrealtime.repository.models.QualityLimitationDurationData
+import com.amazon.ivs.stagesrealtime.repository.models.RTCBoundData
 import com.amazon.ivs.stagesrealtime.repository.models.RTCData
-import com.amazon.ivs.stagesrealtime.repository.models.VideoStreamInboundData
-import com.amazon.ivs.stagesrealtime.repository.models.VideoStreamOutboundData
+import com.amazon.ivs.stagesrealtime.repository.models.RTCLatency
 import com.amazon.ivs.stagesrealtime.repository.networking.models.StageMode
 import com.amazon.ivs.stagesrealtime.repository.networking.models.StageType
 import com.amazonaws.ivs.broadcast.AudioLocalStageStream
@@ -38,10 +37,12 @@ import kotlinx.coroutines.flow.update
 import org.json.JSONObject
 import timber.log.Timber
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.math.roundToInt
 
 class StageStrategy(
     context: Context,
-    private val appSettingsStore: DataStore<AppSettings>
+    private val appSettingsStore: DataStore<AppSettings>,
+    private val onVideoStatsUpdated: (RTCLatency) -> Unit
 ) {
     private val deviceDiscovery = DeviceDiscovery(context)
     private val streams = mutableListOf<LocalStageStream>()
@@ -53,6 +54,9 @@ class StageStrategy(
     private var audioDevice: AudioLocalStageStream? = null
     private var _preview: ImagePreviewView? = null
     private var _isParticipating = false
+    private var _isCreator = false
+    private var _stageId: String? = null
+    private var _participantId: String? = null
 
     private val _isLocalUserSpeaking = MutableStateFlow(false)
     private val _rtcData = MutableStateFlow(RTCData())
@@ -90,9 +94,19 @@ class StageStrategy(
         override fun shouldSubscribeToParticipant(stage: Stage, info: ParticipantInfo) = subscribeType
     }
 
-    suspend fun setup(type: StageType, isParticipating: Boolean, isCreator: Boolean, mode: StageMode = StageMode.NONE) {
+    suspend fun setup(
+        type: StageType,
+        isParticipating: Boolean,
+        isCreator: Boolean,
+        stageId: String?,
+        participantId: String?,
+        mode: StageMode = StageMode.NONE
+    ) {
         _currentMode = mode
         _isParticipating = isParticipating
+        _stageId = stageId
+        _participantId = participantId
+        _isCreator = isCreator
         subscribeType = when {
             isCreator && mode == StageMode.NONE -> SubscribeType.NONE
             type == StageType.AUDIO -> SubscribeType.AUDIO_ONLY
@@ -135,7 +149,10 @@ class StageStrategy(
                     simulcast.isEnabled = isSimulcastEnabled()
                 })
                 videoDevice!!.muted = wasMuted
-                videoDevice?.setListener(createRTCStatsListenerObject())
+                videoDevice?.setListener(createRTCStatsListenerObject(
+                    stageId = _stageId,
+                    participantId = _participantId
+                ))
                 streams.add(videoDevice!!)
             }
             refreshVideoPreview()
@@ -162,42 +179,42 @@ class StageStrategy(
     }
 
     fun requestRTCStatsForVideoStream() {
-        Timber.d("Requesting stats for $videoDevice")
         videoDevice?.requestRTCStats()
     }
 
     fun requestRTCStatsForAudioStream() {
-        Timber.d("Requesting stats for $audioDevice")
         audioDevice?.requestRTCStats()
     }
 
     fun removeRTCDataById(participantId: String) =
         _rtcDataList.updateList {
-            val isRemoved = removeIf { it.userInfo?.participantId == participantId }
+            val isRemoved = removeIf { it.participantId == participantId }
             Timber.d("RTC data user removal state - $isRemoved")
         }
 
     fun createRTCStatsListenerObject(
-        userInfo: ParticipantAttributes? = null,
+        participantId: String? = null,
+        stageId: String? = null,
         forAudio: Boolean = false,
         forViewer: Boolean = false
     ) = object : StageStream.Listener {
-        override fun onMutedChanged(p0: Boolean) { /* Ignored */ }
+        override fun onMutedChanged(state: Boolean) { /* Ignored */ }
 
         override fun onRTCStats(stats: MutableMap<String, MutableMap<String, String>>?) {
-            Timber.d("RTC stats for stream: $forAudio, $forViewer, $_currentMode, $subscribeType")
-            var rtcData = collectRTCData(stats, forViewer)
+            val isHost = joinedParticipants.find { it.participantId == participantId }?.isHost ?: _isCreator
+            Timber.d("RTC stats for stream: $forAudio, $forViewer, $_currentMode, $subscribeType, $stageId, $participantId, $isHost")
+            var rtcData = parseRTCData(stats = stats, isForViewer = forViewer, isHost = isHost)
             if (!forViewer) {
                 _rtcData.update { rtcData }
-            } else if (userInfo != null) {
+            } else if (participantId != null) {
                 _rtcDataList.updateList {
-                    val index = this.indexOfFirst { it.userInfo?.participantId == userInfo.participantId }
-                    val isHost = joinedParticipants.find { it.participantId == userInfo.participantId }?.isHost ?: false
+                    val index = this.indexOfFirst { it.participantId == participantId }
                     rtcData = RTCData(
                         latency = rtcData.latency,
                         fps = if (forAudio) null else rtcData.fps,
                         packetLoss = rtcData.packetLoss,
-                        userInfo = userInfo,
+                        stageId = stageId,
+                        participantId = participantId,
                         isHostData = isHost,
                         isGuestData = !isHost && subscribeType != SubscribeType.AUDIO_ONLY
                     )
@@ -214,22 +231,28 @@ class StageStrategy(
     private suspend fun isSimulcastEnabled() = appSettingsStore.data.first().isSimulcastEnabled
     private suspend fun getBitrate() = appSettingsStore.data.first().bitrate
 
-    private fun collectRTCData(
+    private fun parseRTCData(
         stats: Map<String, Map<String, String>>?,
-        isForViewer: Boolean = false
+        isForViewer: Boolean = false,
+        isHost: Boolean = false
     ): RTCData {
         try {
-            Timber.d("Is for guest - $isForViewer")
-            val outbound: VideoStreamOutboundData? = stats?.get("outbound-rtp")?.asObject<VideoStreamOutboundData>()
-            val inbound = stats?.get("inbound-rtp")?.asObject<VideoStreamInboundData>()
-            val candidatePair = stats?.get("candidate-pair")?.asObject<CandidatePairData>()
-            val remoteInbound = stats?.get("remote-inbound-rtp")?.asObject<VideoStreamInboundData>()
+            var outbound: RTCBoundData? = null
+            var inbound: RTCBoundData? = null
+            var remoteInbound: RTCBoundData? = null
+            var candidatePair: RTCBoundData? = null
+            stats?.forEach { stat ->
+                val boundData = stat.value.asObject<RTCBoundData>()
+                when {
+                    boundData.isOutbound && outbound == null -> outbound = boundData
+                    boundData.isInbound && inbound == null -> inbound = boundData
+                    boundData.isRemoteInbound && remoteInbound == null -> remoteInbound = boundData
+                    boundData.isCandidatePair && candidatePair == null -> candidatePair = boundData
+                }
+            }
 
             val streamQuality: RTCData.StreamQuality? = outbound?.qualityLimitationReason?.let { reason ->
-                if (reason == "none")
-                    RTCData.StreamQuality.NORMAL
-                else
-                    RTCData.StreamQuality.LIMITED
+                if (reason == "none") RTCData.StreamQuality.NORMAL else RTCData.StreamQuality.LIMITED
             }
 
             // Workaround, because of the non-consistency of data format in raw RTC stats map
@@ -240,6 +263,9 @@ class StageStrategy(
             val latency = candidatePair?.currentRoundTripTime?.times(1000)
             val fps = if (isForViewer) inbound?.framesPerSecond else outbound?.framesPerSecond
             val packetLost = if (isForViewer) inbound?.packetsLost else remoteInbound?.packetsLost
+            latency?.roundToInt()?.toString()?.let { value ->
+                onVideoStatsUpdated(RTCLatency(value = value, isHost = isHost))
+            }
 
             return RTCData(
                 streamQuality = streamQuality,
@@ -271,7 +297,11 @@ class StageStrategy(
                     _isLocalUserSpeaking.update { rms >= RMS_SPEAKING_THRESHOLD }
                 }
                 if (type == StageType.AUDIO) {
-                    audioDevice?.setListener(createRTCStatsListenerObject(forAudio = true))
+                    audioDevice?.setListener(createRTCStatsListenerObject(
+                        stageId = _stageId,
+                        participantId = _participantId,
+                        forAudio = true
+                    ))
                 }
                 streams.add(audioDevice!!)
             }
@@ -291,7 +321,10 @@ class StageStrategy(
                 })
                 videoDevice?.muted = isVideoOff
                 if (type == StageType.VIDEO) {
-                    videoDevice?.setListener(createRTCStatsListenerObject())
+                    videoDevice?.setListener(createRTCStatsListenerObject(
+                        stageId = _stageId,
+                        participantId = _participantId
+                    ))
                 }
                 streams.add(videoDevice!!)
             }

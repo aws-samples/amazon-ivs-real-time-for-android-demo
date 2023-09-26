@@ -47,4 +47,10 @@ sealed interface StageEvent {
         val isFacingBack: Boolean,
         val video: View?
     ) : StageEvent
+    data class VideoStatsUpdated(
+        val guestTTV: String? = null,
+        val guestLatency: String = "",
+        val creatorTTV: String? = null,
+        val creatorLatency: String = "",
+    ) : StageEvent
 }

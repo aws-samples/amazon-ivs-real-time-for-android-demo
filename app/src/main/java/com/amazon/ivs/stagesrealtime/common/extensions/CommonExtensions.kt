@@ -48,3 +48,4 @@ fun Map<String, String>.asPKModeScore(hostId: String, shouldResetScore: Boolean 
 suspend fun DataStore<AppSettings>.getUserAvatar() = data.first().userAvatar
 suspend fun DataStore<AppSettings>.getStageId() = data.first().stageId
 suspend fun DataStore<AppSettings>.getCustomerCode() = data.first().customerCode
+suspend fun DataStore<AppSettings>.isVideoStatsEnabled() = data.first().isVideoStatsEnabled

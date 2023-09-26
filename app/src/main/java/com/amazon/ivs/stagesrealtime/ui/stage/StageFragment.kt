@@ -89,12 +89,14 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
     override fun onResume() {
         super.onResume()
         viewModel.startCollectingStages()
+        viewModel.startCollectingRTCStats()
         binding.root.viewTreeObserver.addOnGlobalLayoutListener(onGlobalLayoutListener)
     }
 
     override fun onPause() {
         super.onPause()
         viewModel.stopCollectingStages()
+        viewModel.stopCollectingRTCStats()
         binding.root.viewTreeObserver.removeOnGlobalLayoutListener(onGlobalLayoutListener)
     }
 
@@ -364,6 +366,11 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
         var cardMeasured = false
         collectLatestWithLifecycle(viewModel.stages) { stages ->
             Timber.d("Received stages: ${stages.stageCount}")
+            if (stages.stageCount == 0) {
+                viewModel.stopCollectingRTCStats()
+            } else {
+                viewModel.startCollectingRTCStats()
+            }
             if (stages.stageCount == 0 || binding.stages?.stageCenter?.stageId != stages.stageCenter?.stageId) {
                 hideKeyboard()
             }
@@ -433,6 +440,32 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
                     }
                     launchUI {
                         stageButtons.root.fadeIn()
+                    }
+
+                    // Handle TTV & Latency video stats
+                    if (stage.creatorLatency != null) {
+                        val creatorStats = if (stage.creatorTTV != null) {
+                            getString(R.string.video_stats_pattern, stage.creatorTTV, stage.creatorLatency)
+                        } else if (stage.creatorLatency.isNotBlank()) {
+                            getString(R.string.video_latency_pattern, stage.creatorLatency)
+                        } else {
+                            ""
+                        }
+                        Timber.d("Creator Stats: $creatorStats")
+                        stageCenter.videoStage.creatorVideoStats.text = creatorStats
+                        stageCenter.videoStage.creatorPkVideoStats.text = creatorStats
+                    }
+                    if (stage.guestLatency != null) {
+                        val guestStats = if (stage.guestTTV != null) {
+                            getString(R.string.video_stats_pattern, stage.guestTTV, stage.guestLatency)
+                        } else if (stage.guestLatency.isNotBlank()) {
+                            getString(R.string.video_latency_pattern, stage.guestLatency)
+                        } else {
+                            ""
+                        }
+                        Timber.d("Guest Stats: $guestStats")
+                        stageCenter.videoStage.guestVideoStats.text = guestStats
+                        stageCenter.videoStage.guestPkVideoStats.text = guestStats
                     }
                 } ?: run {
                     if (isPKMode) {

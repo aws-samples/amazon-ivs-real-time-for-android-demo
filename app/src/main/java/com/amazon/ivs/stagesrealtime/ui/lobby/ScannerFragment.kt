@@ -46,6 +46,7 @@ class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
     private lateinit var imageAnalysis: ImageAnalysis
     private lateinit var cameraExecutor: ExecutorService
     private var processingBarcode = false
+    private var showingErrorBar = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -60,13 +61,18 @@ class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
 
     private fun setupCollectors() = with(binding) {
         collectLatestWithLifecycle(viewModel.onCustomerCodeSet) { isSet ->
-            Timber.d("Valid api key and code received - $isSet")
+            Timber.d("Valid api key and code received: $isSet")
             processingBarcode = false
             if (isSet) {
                 cameraExecutor.shutdown()
                 handleBackPress()
             } else {
-                showErrorBar(R.string.error_customer_code)
+                if (!showingErrorBar) {
+                    showingErrorBar = true
+                    showErrorBar(R.string.error_customer_code) {
+                        showingErrorBar = false
+                    }
+                }
             }
         }
 
@@ -118,12 +124,10 @@ class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener { barcodes ->
                     if (barcodes.isNotEmpty() && !processingBarcode) {
-                        Timber.d("Scanned barcodes:\n")
-                        barcodes.forEach { barcode ->
-                            processingBarcode = true
-                            Timber.d("${barcode.rawValue}")
-                            viewModel.signIn(barcode.rawValue ?: "")
-                        }
+                        val barcode = barcodes.first().rawValue ?: ""
+                        Timber.d("Scanned barcode: $barcode")
+                        processingBarcode = true
+                        viewModel.signIn(barcode)
                     }
                 }
                 .addOnFailureListener { error ->
