@@ -13,4 +13,5 @@ data class AppSettings(
     val bitrate: Int = DEFAULT_VIDEO_BITRATE,
     val apiKey: String? = null,
     val isSimulcastEnabled: Boolean = false,
+    val isVideoStatsEnabled: Boolean = true,
 )

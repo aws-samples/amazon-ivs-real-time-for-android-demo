@@ -34,9 +34,37 @@ import javax.inject.Singleton
  */
 @Singleton
 class NetworkClient @Inject constructor(private val appSettingsStore: DataStore<AppSettings>) {
-    private val okHttpClient by lazy {
+    private var _api: Api? = null
+    private var _currentBaseUrl = ""
+
+    fun getOrCreateApi(): Api {
+        val customerCode = runBlocking { appSettingsStore.data.first().customerCode }
+        val api = if (_currentBaseUrl == customerCode && _api != null) {
+            _api!!
+        } else {
+            _currentBaseUrl = customerCode ?: ""
+            val url = "https://$_currentBaseUrl.cloudfront.net/"
+            Timber.d("Creating API: $url")
+            val retrofitClient = Retrofit.Builder()
+                .client(getOkHttpClient())
+                .baseUrl(url)
+                .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+                .build()
+            retrofitClient.create(Api::class.java)
+        }
+        _api = api
+        return api
+    }
+
+    fun destroyApi() {
+        _api = null
+        _currentBaseUrl = ""
+    }
+
+    private fun getOkHttpClient(): OkHttpClient {
         // runBlocking is used to have the same synchronous behaviour as with SharedPreferences
         val apiKey = runBlocking { appSettingsStore.data.first().apiKey }
+        Timber.d("Adding header: $apiKey")
         val builder = OkHttpClient.Builder()
             .connectTimeout(REQUEST_TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(REQUEST_TIMEOUT, TimeUnit.SECONDS)
@@ -55,32 +83,6 @@ class NetworkClient @Inject constructor(private val appSettingsStore: DataStore<
             interceptor.level = HttpLoggingInterceptor.Level.BODY
             builder.addInterceptor(interceptor)
         }
-        builder.build()
-    }
-    private var _api: Api? = null
-    private var _currentBaseUrl = ""
-
-    fun getOrCreateApi(): Api {
-        val customerCode = runBlocking { appSettingsStore.data.first().customerCode }
-        val api = if (_currentBaseUrl == customerCode && _api != null) {
-            _api!!
-        } else {
-            _currentBaseUrl = customerCode ?: ""
-            val url = "https://$_currentBaseUrl.cloudfront.net/"
-            Timber.d("Creating API: $url")
-            val retrofitClient = Retrofit.Builder()
-                .client(okHttpClient)
-                .baseUrl(url)
-                .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-                .build()
-            retrofitClient.create(Api::class.java)
-        }
-        _api = api
-        return api
-    }
-
-    fun destroyApi() {
-        _api = null
-        _currentBaseUrl = ""
+        return builder.build()
     }
 }

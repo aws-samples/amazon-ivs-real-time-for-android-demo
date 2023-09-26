@@ -12,6 +12,7 @@ import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_RIGHT
 import com.amazon.ivs.stagesrealtime.common.RMS_SPEAKING_THRESHOLD
 import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.amazon.ivs.stagesrealtime.repository.models.ParticipantAttributes
+import com.amazon.ivs.stagesrealtime.repository.models.RTCLatency
 import com.amazon.ivs.stagesrealtime.repository.models.UserAvatar
 import com.amazon.ivs.stagesrealtime.repository.networking.models.StageMode
 import com.amazon.ivs.stagesrealtime.repository.networking.models.StageType
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.Date
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class StageManager(
@@ -37,7 +39,9 @@ class StageManager(
     ioScope: CoroutineScope,
 ) {
     // The currently joined stage
-    private val stageStrategy = StageStrategy(context, appSettingsStore)
+    private val stageStrategy = StageStrategy(context, appSettingsStore) { ttvLatency ->
+        onVideoStatsUpdated(ttvLatency)
+    }
     private var currentStage: Stage? = null
     private var hostVideoStream: StageStream? = null
     private var hostAudioStream: StageStream? = null
@@ -51,6 +55,14 @@ class StageManager(
     private var isCreator = false
     private var isParticipant = false
     private var hostParticipantId: String? = null
+    private var selfParticipantId: String? = null
+    private var lastLatency = RTCLatency()
+    private var lastVideoStats = StageEvent.VideoStatsUpdated()
+
+    private var creatorJoinTime = 0L
+    private var creatorVideoTime = 0L
+    private var guestJoinTime = 0L
+    private var guestVideoTime = 0L
 
     val onEvent = _onEvent.asSharedFlow()
     val isLocalUserSpeaking = stageStrategy.isLocalUserSpeaking
@@ -78,8 +90,12 @@ class StageManager(
             Timber.d("Participant joined: ${info.participantId}, ${info.userInfo}, $hostParticipantId, $stageId")
             val isHost = hostParticipantId == null && stageId == info.userInfo["username"]
             if (isHost) {
-                Timber.d("Creator joined: ${info.participantId}, ${info.userInfo}")
                 hostParticipantId = info.participantId
+                creatorJoinTime = Date().time
+                Timber.d("Creator joined: ${info.participantId}, ${info.userInfo}, $creatorJoinTime")
+            } else {
+                guestJoinTime = Date().time
+                Timber.d("Guest joined: ${info.participantId}, ${info.userInfo}, $guestJoinTime")
             }
             var participantUsername = ""
             val userAvatar = info.userInfo?.let { attributes ->
@@ -121,9 +137,15 @@ class StageManager(
             if (joinedParticipants.removeIf { it.participantId == info.participantId }) {
                 Timber.d("Participant left: ${info.participantId}, ${info.userInfo}")
                 val creatorLeft = info.participantId == hostParticipantId
+                guestJoinTime = 0L
+                guestVideoTime = 0L
+                lastVideoStats = lastVideoStats.copy(guestTTV = null, guestLatency = "")
                 if (creatorLeft) {
                     hostVideoStream = null
                     hostParticipantId = null
+                    creatorJoinTime = 0L
+                    creatorVideoTime = 0L
+                    lastVideoStats = lastVideoStats.copy(creatorTTV = null, creatorLatency = "")
                     stageStrategy.joinedParticipants = joinedParticipants
                     stage.refreshStrategy()
                 }
@@ -169,6 +191,15 @@ class StageManager(
                 videoStream = stream
                 if (isHost) hostVideoStream = stream else guestVideoStream = stream
                 video = stream.getVideoPreview()
+                (stream.device as? ImageDevice)?.setOnFrameCallback {
+                    if (isHost) {
+                        creatorVideoTime = Date().time
+                    } else {
+                        guestVideoTime = Date().time
+                    }
+                    Timber.d("TTV Frame Updated: $creatorJoinTime, $creatorVideoTime, $guestJoinTime, $guestVideoTime")
+                    (stream.device as? ImageDevice)?.setOnFrameCallback(null)
+                }
             }
             streams.find { it.streamType == StageStream.Type.AUDIO }?.let { stream ->
                 isAudioOff = stream.muted
@@ -199,13 +230,15 @@ class StageManager(
             )
             videoStream?.setListener(
                 stageStrategy.createRTCStatsListenerObject(
-                    userInfo = attributes,
+                    participantId= attributes.participantId,
+                    stageId = attributes.stageId,
                     forViewer = true
                 )
             )
             audioStream?.setListener(
                 stageStrategy.createRTCStatsListenerObject(
-                    userInfo = attributes,
+                    participantId= attributes.participantId,
+                    stageId = attributes.stageId,
                     forAudio = true,
                     forViewer = true
                 )
@@ -254,7 +287,15 @@ class StageManager(
                     }
                 }
                 Timber.d("Participant streams removed: ${info.participantId}, ${info.userInfo}, $isHost")
-                val event = if (isHost) StageEvent.CreatorLeft else StageEvent.GuestLeft
+                guestJoinTime = 0L
+                guestVideoTime = 0L
+                lastVideoStats = lastVideoStats.copy(guestTTV = null, guestLatency = "")
+                val event = if (isHost) {
+                    creatorJoinTime = 0L
+                    creatorVideoTime = 0L
+                    lastVideoStats = lastVideoStats.copy(creatorTTV = null, creatorLatency = "")
+                    StageEvent.CreatorLeft
+                } else StageEvent.GuestLeft
                 _onEvent.tryEmit(event)
             }
         }
@@ -290,10 +331,11 @@ class StageManager(
 
     suspend fun joinStage(
         stageId: String, token: String, type: StageType,
-        isCreator: Boolean, hostParticipantId: String? = null
+        isCreator: Boolean, selfParticipantId: String, hostParticipantId: String? = null
     ) {
         this.isCreator = isCreator
         this.hostParticipantId = hostParticipantId
+        this.selfParticipantId = selfParticipantId
         this.isParticipant = false
         this.stageId = stageId
         this.stageType = type
@@ -302,7 +344,13 @@ class StageManager(
         this.guestVideoStream = null
         joinedParticipants.clear()
         stageStrategy.joinedParticipants = this.joinedParticipants
-        stageStrategy.setup(type = type, isParticipating = isCreator, isCreator = isCreator)
+        stageStrategy.setup(
+            type = type,
+            isParticipating = isCreator,
+            isCreator = isCreator,
+            stageId = stageId,
+            participantId = selfParticipantId
+        )
         currentStage?.leave()
         currentStage = null
         currentStage = Stage(context, token, stageStrategy.strategy)
@@ -320,7 +368,14 @@ class StageManager(
 
     suspend fun startPublishing(type: StageType, mode: StageMode) {
         isParticipant = true
-        stageStrategy.setup(type = type, mode = mode, isParticipating = true, isCreator = false)
+        stageStrategy.setup(
+            type = type,
+            mode = mode,
+            isParticipating = true,
+            isCreator = false,
+            stageId = this.stageId,
+            participantId = this.selfParticipantId,
+        )
         currentStage?.refresh()
     }
 
@@ -404,7 +459,14 @@ class StageManager(
     suspend fun updateMode(type: StageType, mode: StageMode) {
         if (stageStrategy.currentMode == mode) return
         Timber.d("Update mode: ${stageStrategy.currentMode}, $mode")
-        stageStrategy.setup(type = type, mode = mode, isCreator = isCreator, isParticipating = isParticipating())
+        stageStrategy.setup(
+            type = type,
+            mode = mode,
+            isCreator = isCreator,
+            isParticipating = isParticipating(),
+            stageId = this.stageId,
+            participantId = this.selfParticipantId
+        )
         currentStage?.refresh()
     }
 
@@ -413,25 +475,23 @@ class StageManager(
     fun getParticipantAvatar(stageId: String?) = joinedParticipants.find { it.stageId == stageId }?.userAvatar
 
     fun requestRTCStats() {
-        Timber.d("Requesting stats as participant - ${isParticipating()}")
+        if (stageType == null) return
+        Timber.d("Requesting stats for: $stageType")
         if (stageType == StageType.VIDEO) {
             requestRTCStatsForVideo()
-        } else if (stageType != null) {
+        } else {
             requestRTCStatsForAudio()
         }
     }
 
     private fun requestRTCStatsForVideo() {
-        Timber.d("Requesting video RTC stats")
         if (isParticipating()) {
             stageStrategy.requestRTCStatsForVideoStream()
-        } else {
-            joinedParticipants.forEach { it.videoStream?.requestRTCStats() }
         }
+        joinedParticipants.forEach { it.videoStream?.requestRTCStats() }
     }
 
     private fun requestRTCStatsForAudio() {
-        Timber.d("Requesting audio RTC stats")
         if (isParticipating()) {
             stageStrategy.requestRTCStatsForAudioStream()
         } else {
@@ -467,5 +527,39 @@ class StageManager(
             this.removeAll { it.participantId == participantId }
             return true
         } ?: run { return false }
+    }
+
+    private fun onVideoStatsUpdated(rtcLatency: RTCLatency) {
+        if (lastLatency == rtcLatency) return
+        lastLatency = rtcLatency
+        val isHost = rtcLatency.isHost
+        val ttv = if (isHost) {
+            if (creatorVideoTime > creatorJoinTime) {
+                val time = (creatorVideoTime - creatorJoinTime) / 1000f
+                String.format("%.2f", time)
+            } else {
+                null
+            }
+        } else {
+            if (guestVideoTime > guestJoinTime) {
+                val time = (guestVideoTime - guestJoinTime) / 1000f
+                String.format("%.2f", time)
+            } else {
+                null
+            }
+        }
+        lastVideoStats = if (isHost) {
+            lastVideoStats.copy(
+                creatorTTV = ttv,
+                creatorLatency = rtcLatency.value
+            )
+        } else {
+            lastVideoStats.copy(
+                guestTTV = ttv,
+                guestLatency = rtcLatency.value
+            )
+        }
+        Timber.d("TTV Updated: $ttv, $rtcLatency, $lastVideoStats")
+        _onEvent.tryEmit(lastVideoStats)
     }
 }

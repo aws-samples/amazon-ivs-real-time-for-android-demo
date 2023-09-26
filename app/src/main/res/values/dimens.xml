@@ -26,6 +26,7 @@
     <dimen name="text_size_button">18sp</dimen>
     <dimen name="text_size_medium">16sp</dimen>
     <dimen name="text_size_normal">14sp</dimen>
+    <dimen name="text_size_small">12sp</dimen>
 
     <dimen name="radius_huge">32dp</dimen>
     <dimen name="radius_big">24dp</dimen>

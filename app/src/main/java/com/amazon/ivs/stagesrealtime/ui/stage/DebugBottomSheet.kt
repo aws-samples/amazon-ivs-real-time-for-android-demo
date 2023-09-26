@@ -37,8 +37,6 @@ class DebugBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_debug) 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewModel.requestRTCStats()
-
         with(binding) {
             qualityValues.setVisibleOr(viewModel.isCurrentStageVideo())
             fps.root.setVisibleOr(viewModel.isCurrentStageVideo())
@@ -48,7 +46,12 @@ class DebugBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_debug) 
 
             streamsData.adapter = adapter
             streamsData.itemAnimator = null
-            sdkVersion.dataValue = BroadcastSession.getVersion()
+            val version = BroadcastSession.getVersion()
+            Timber.d("Setting broadcast SDK version: $version")
+            sdkVersion.dataValue = version
+            sdkVersion.dataValueText.text = version
+            sdkVersionParticipant.dataValue = version
+            sdkVersionParticipant.dataValueText.text = version
             dismissButton.setOnClickListener { dismissNow() }
             copyButton.setOnClickListener {
                 clipboard.setPrimaryClip(ClipData.newPlainText("RTC stats", lastRawRTSStats))
@@ -71,7 +74,12 @@ class DebugBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_debug) 
                 packetLoss.dataValue = data.packetLoss?.let {
                     String.format(getString(R.string.percentage_template), it)
                 } ?: "-"
-                sdkVersionParticipant.dataValue = data.sdkVersion
+                val version = BroadcastSession.getVersion()
+                Timber.d("Setting broadcast SDK version: $version")
+                sdkVersion.dataValue = version
+                sdkVersion.dataValueText.text = version
+                sdkVersionParticipant.dataValue = version
+                sdkVersionParticipant.dataValueText.text = version
             }
         }
 
@@ -80,11 +88,6 @@ class DebugBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_debug) 
             adapter.submitList(dataList)
             lastRawRTSStats = dataList.asStringData()
         }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        viewModel.stopRequestingRTCStats()
     }
 
     private fun List<RTCDataUIItemModel>.asStringData(): String {

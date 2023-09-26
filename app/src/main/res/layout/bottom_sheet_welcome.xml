@@ -106,6 +106,36 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:drawablePadding="@dimen/padding_small"
+                    android:text="@string/video_stats"
+                    android:textColor="@color/gray_data"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/video_stats_switch"
+                    style="@style/Switch"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/icon_normal"
+                    android:checked="true"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/margin_medium"
+                android:background="@color/white_dark"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/TextStyle.DebugData"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawablePadding="@dimen/padding_small"
                     android:text="@string/simulcast"
                     android:textColor="@color/gray_data"
                     app:layout_constraintBottom_toBottomOf="parent"

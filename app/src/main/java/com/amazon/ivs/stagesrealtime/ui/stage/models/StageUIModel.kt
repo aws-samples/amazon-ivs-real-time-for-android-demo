@@ -19,11 +19,16 @@ data class StageUIModel(
     val isSpeaking: Boolean = false,
     val isPKMode: Boolean = false,
     val isAudioMode: Boolean = false,
+    val isVideoStatsEnabled: Boolean = true,
     val creatorVideo: View? = null,
     val guestVideo: View? = null,
     val creatorAvatar: UserAvatar? = null,
     val selfAvatar: UserAvatar? = null,
-    val seats: List<AudioSeatUIModel> = emptyList()
+    val seats: List<AudioSeatUIModel> = emptyList(),
+    val guestTTV: String? = null,
+    val guestLatency: String? = null,
+    val creatorTTV: String? = null,
+    val creatorLatency: String? = null
 ) {
     fun showKickButton() = !isAudioMode &&
             ((isCreator && isGuestJoined) || (!isCreator && !isGuestJoined && !isPKMode && !isGuestMode))

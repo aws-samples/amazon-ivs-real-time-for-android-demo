@@ -93,6 +93,11 @@ class LobbyBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_welcome
             Timber.d("Simulcast switch changed: $isChecked")
             viewModel.changeIsSimulcastEnabled(isChecked)
         }
+        videoStatsSwitch.isChecked = viewModel.appSettings.value.isVideoStatsEnabled
+        videoStatsSwitch.setOnCheckedChangeListener { _, isChecked ->
+            Timber.d("Video stats switch changed: $isChecked")
+            viewModel.changeIsVideoStatsEnabled(isChecked)
+        }
 
         bitrateSlider.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {

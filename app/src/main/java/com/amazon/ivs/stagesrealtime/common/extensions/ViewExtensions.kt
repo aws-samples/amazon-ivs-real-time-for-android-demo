@@ -16,6 +16,7 @@ import com.amazon.ivs.stagesrealtime.R
 import com.amazon.ivs.stagesrealtime.common.PK_WINNER_START_SCALE
 import com.amazon.ivs.stagesrealtime.databinding.ViewErrorBarBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.snackbar.BaseTransientBottomBar.BaseCallback
 import com.google.android.material.snackbar.Snackbar
 import timber.log.Timber
 
@@ -31,18 +32,18 @@ fun Snackbar.showOnTop() {
 }
 
 @SuppressLint("ShowToast")
-fun Fragment.showErrorBar(@StringRes error: Int) {
+fun Fragment.showErrorBar(@StringRes error: Int, onDismissed: () -> Unit = {}) {
     val parentView = activity!!.window!!.decorView
     val errorView = ViewErrorBarBinding.inflate(layoutInflater)
     errorView.message.text = parentView.context.getString(error)
-    showErrorBar(parentView, errorView)
+    showErrorBar(parentView, errorView, onDismissed)
 }
 
-fun BottomSheetDialogFragment.showErrorBar(@StringRes error: Int) {
+fun BottomSheetDialogFragment.showErrorBar(@StringRes error: Int, onDismissed: () -> Unit = {}) {
     val parentView = dialog!!.window!!.decorView
     val errorView = ViewErrorBarBinding.inflate(layoutInflater)
     errorView.message.text = parentView.context.getString(error)
-    showErrorBar(parentView, errorView)
+    showErrorBar(parentView, errorView, onDismissed)
 }
 
 fun View.fadeAlpha(
@@ -125,10 +126,16 @@ fun FragmentActivity.showKeyboard() {
 }
 
 @SuppressLint("ShowToast")
-private fun showErrorBar(parentView: View, errorView: ViewErrorBarBinding) {
+private fun showErrorBar(parentView: View, errorView: ViewErrorBarBinding, onDismissed: () -> Unit) {
     val snackBar = Snackbar.make(parentView, "", Snackbar.LENGTH_LONG)
     val snackBarLayout = snackBar.view as Snackbar.SnackbarLayout
     snackBarLayout.setBackgroundColor(Color.TRANSPARENT)
     snackBarLayout.addView(errorView.root)
+    snackBar.addCallback(object : BaseCallback<Snackbar>() {
+        override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+            super.onDismissed(transientBottomBar, event)
+            onDismissed()
+        }
+    })
     snackBar.showOnTop()
 }

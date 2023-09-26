@@ -93,6 +93,10 @@ class LobbyViewModel @Inject constructor(
         appSettingsStore.updateData { it.copy(isSimulcastEnabled = isSimulcastEnabled) }
     }
 
+    fun changeIsVideoStatsEnabled(isVideoStatsEnabled: Boolean) = launch {
+        appSettingsStore.updateData { it.copy(isVideoStatsEnabled = isVideoStatsEnabled) }
+    }
+
     fun onSignOut() = launch {
         appSettingsStore.updateData { it.copy(customerCode = null) }
         _onSignedOut.send(Unit)

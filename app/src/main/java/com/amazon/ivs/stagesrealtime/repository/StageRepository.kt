@@ -11,6 +11,7 @@ import com.amazon.ivs.stagesrealtime.common.extensions.getByIndexOrFirst
 import com.amazon.ivs.stagesrealtime.common.extensions.getByIndexOrLast
 import com.amazon.ivs.stagesrealtime.common.extensions.getStageId
 import com.amazon.ivs.stagesrealtime.common.extensions.getUserAvatar
+import com.amazon.ivs.stagesrealtime.common.extensions.isVideoStatsEnabled
 import com.amazon.ivs.stagesrealtime.common.extensions.launchMain
 import com.amazon.ivs.stagesrealtime.common.extensions.runCancellableCatching
 import com.amazon.ivs.stagesrealtime.di.IOScope
@@ -171,9 +172,17 @@ interface StageRepository {
      */
     suspend fun verifyConnectionCode(): Response<Error.CustomerCodeError, Ok>
 
-    // Self explanatory functions
+    /**
+     * Switches the camera facing from front to back and vice versa
+     */
     suspend fun switchFacing()
-    fun scrollStages(direction: ScrollDirection)
+
+    /**
+     * Shifts the stage list by one to the given direction if possible
+     */
+    suspend fun scrollStages(direction: ScrollDirection)
+
+    // Self explanatory functions
     fun sendMessage(message: String)
     fun likeStage()
     fun isCurrentStageVideo(): Boolean
@@ -233,7 +242,7 @@ class StageRepositoryImpl @Inject constructor(
         _stages.asStateFlow()
     }
 
-    override fun scrollStages(direction: ScrollDirection) {
+    override suspend fun scrollStages(direction: ScrollDirection) {
         val stageCount = availableStages.size
         scrollDirection = direction
         val lastPosition = currentPosition
@@ -270,6 +279,7 @@ class StageRepositoryImpl @Inject constructor(
             stageManager.joinStage(
                 stageId = joinedStage.stageId,
                 hostParticipantId = joinedStage.hostParticipantId,
+                selfParticipantId = joinedStage.hostParticipantId,
                 token = joinedStage.token,
                 type = joinedStage.type,
                 isCreator = true
@@ -617,6 +627,7 @@ class StageRepositoryImpl @Inject constructor(
                     stageId = joinedStage.stageId,
                     token = joinedStage.token,
                     type = joinedStage.stageType,
+                    selfParticipantId = joinedStage.participantId,
                     isCreator = false
                 )
                 stageManager.observeStage()
@@ -632,11 +643,13 @@ class StageRepositoryImpl @Inject constructor(
      * Called whenever something changes in the stage to update the UI.
      * This function is called very frequently and should always contain the latest up to date state of the UI.
      */
-    private fun updateStages() {
+    private suspend fun updateStages() {
         val stageList = StageListModel(stageCount = availableStages.size)
         Timber.d("Updating stages: ${availableStages.isNotEmpty()}, $currentPosition")
         if (availableStages.isNotEmpty()) {
-            val centerStage = availableStages.getByIndexOrFirst(index = currentPosition)
+            val centerStage = availableStages.getByIndexOrFirst(index = currentPosition)?.copy(
+                isVideoStatsEnabled = appSettingsStore.isVideoStatsEnabled()
+            )
             // For convenience we crate a local function here not in the class
             fun clearPreviousStageVideos(stage: StageUIModel?): StageUIModel? {
                 if (stage != null && stage.stageId != currentStageIdByPosition && stage in availableStages) {
@@ -817,6 +830,16 @@ class StageRepositoryImpl @Inject constructor(
                         _isGuestJoined = if (event.isParticipant) true else if (!event.isCreator) false else null
                     )
                     availableStages.updateSeats(currentPosition, stageManager, ::getParticipantAttributes)
+                    updateStages()
+                }
+                is StageEvent.VideoStatsUpdated -> {
+                    availableStages.update(
+                        index = currentPosition,
+                        _creatorTTV = event.creatorTTV,
+                        _creatorLatency = event.creatorLatency,
+                        _guestTTV = event.guestTTV,
+                        _guestLatency = event.guestLatency
+                    )
                     updateStages()
                 }
                 StageEvent.GuestLeft -> {

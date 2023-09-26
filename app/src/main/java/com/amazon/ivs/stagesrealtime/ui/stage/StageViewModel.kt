@@ -106,7 +106,9 @@ class StageViewModel @Inject constructor(
         timerHandler.removeCallbacks(timerRunnable)
     }
 
-    fun scrollStages(direction: ScrollDirection) = repository.scrollStages(direction)
+    fun scrollStages(direction: ScrollDirection) = launch {
+        repository.scrollStages(direction)
+    }
 
     fun seatClicked(index: Int) = launch {
         Timber.d("Seat clicked: $index")
@@ -123,13 +125,16 @@ class StageViewModel @Inject constructor(
         }
     }
 
-    fun requestRTCStats() {
+    fun startCollectingRTCStats() {
+        if (rtcTimerEnabled) return
+        stopCollectingRTCStats()
         Timber.d("Started collecting RTC stats")
         rtcTimerEnabled = true
         rtcTimerHandler.post(rtcTimerRunnable)
     }
 
-    fun stopRequestingRTCStats() {
+    fun stopCollectingRTCStats() {
+        if (!rtcTimerEnabled) return
         Timber.d("Stopped collecting RTC stats")
         rtcTimerEnabled = false
         rtcTimerHandler.removeCallbacks(rtcTimerRunnable)
