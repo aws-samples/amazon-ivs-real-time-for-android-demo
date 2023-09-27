@@ -91,11 +91,7 @@ class StageManager(
             val isHost = hostParticipantId == null && stageId == info.userInfo["username"]
             if (isHost) {
                 hostParticipantId = info.participantId
-                creatorJoinTime = Date().time
-                Timber.d("Creator joined: ${info.participantId}, ${info.userInfo}, $creatorJoinTime")
-            } else {
-                guestJoinTime = Date().time
-                Timber.d("Guest joined: ${info.participantId}, ${info.userInfo}, $guestJoinTime")
+                Timber.d("Creator joined: ${info.participantId}, ${info.userInfo}, ${info.capabilities}")
             }
             var participantUsername = ""
             val userAvatar = info.userInfo?.let { attributes ->
@@ -156,6 +152,16 @@ class StageManager(
         override fun onParticipantPublishStateChanged(stage: Stage, info: ParticipantInfo, state: Stage.PublishState) {
             if (info.isLocal) return
             Timber.d("Participant: ${info.participantId}, ${info.userInfo} publish state changed: $state")
+
+            if (state != Stage.PublishState.PUBLISHED) return
+            val isHost = stageId == info.userInfo["username"]
+            if (isHost) {
+                creatorJoinTime = Date().time
+                Timber.d("Creator started publishing: ${info.participantId}, ${info.userInfo}, $creatorJoinTime, ${info.capabilities}")
+            } else {
+                guestJoinTime = Date().time
+                Timber.d("Guest started publishing: ${info.participantId}, ${info.userInfo}, $guestJoinTime, ${info.capabilities}")
+            }
         }
 
         override fun onParticipantSubscribeStateChanged(
@@ -197,7 +203,28 @@ class StageManager(
                     } else {
                         guestVideoTime = Date().time
                     }
-                    Timber.d("TTV Frame Updated: $creatorJoinTime, $creatorVideoTime, $guestJoinTime, $guestVideoTime")
+                    val ttv = if (isHost) {
+                        if (creatorVideoTime > creatorJoinTime) {
+                            val time = (creatorVideoTime - creatorJoinTime) / 1000f
+                            String.format("%.2f", time)
+                        } else {
+                            null
+                        }
+                    } else {
+                        if (guestVideoTime > guestJoinTime) {
+                            val time = (guestVideoTime - guestJoinTime) / 1000f
+                            String.format("%.2f", time)
+                        } else {
+                            null
+                        }
+                    }
+                    lastVideoStats = if (isHost) {
+                        lastVideoStats.copy(creatorTTV = ttv)
+                    } else {
+                        lastVideoStats.copy(guestTTV = ttv)
+                    }
+                    Timber.d("TTV Updated: $ttv, $lastVideoStats")
+                    _onEvent.tryEmit(lastVideoStats)
                     (stream.device as? ImageDevice)?.setOnFrameCallback(null)
                 }
             }
@@ -533,33 +560,12 @@ class StageManager(
         if (lastLatency == rtcLatency) return
         lastLatency = rtcLatency
         val isHost = rtcLatency.isHost
-        val ttv = if (isHost) {
-            if (creatorVideoTime > creatorJoinTime) {
-                val time = (creatorVideoTime - creatorJoinTime) / 1000f
-                String.format("%.2f", time)
-            } else {
-                null
-            }
-        } else {
-            if (guestVideoTime > guestJoinTime) {
-                val time = (guestVideoTime - guestJoinTime) / 1000f
-                String.format("%.2f", time)
-            } else {
-                null
-            }
-        }
         lastVideoStats = if (isHost) {
-            lastVideoStats.copy(
-                creatorTTV = ttv,
-                creatorLatency = rtcLatency.value
-            )
+            lastVideoStats.copy(creatorLatency = rtcLatency.value)
         } else {
-            lastVideoStats.copy(
-                guestTTV = ttv,
-                guestLatency = rtcLatency.value
-            )
+            lastVideoStats.copy(guestLatency = rtcLatency.value)
         }
-        Timber.d("TTV Updated: $ttv, $rtcLatency, $lastVideoStats")
+        Timber.d("Latency updated: $rtcLatency, $lastVideoStats")
         _onEvent.tryEmit(lastVideoStats)
     }
 }
