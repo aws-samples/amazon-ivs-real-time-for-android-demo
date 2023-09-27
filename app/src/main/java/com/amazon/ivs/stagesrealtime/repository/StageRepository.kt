@@ -487,6 +487,7 @@ class StageRepositoryImpl @Inject constructor(
             val hostId = currentStageIdByPosition ?: return@runCancellableCatching Failure(Unit)
             Timber.d("Disconnecting from $hostId, $stageId, $participantId")
             api.disconnectUser(DisconnectUserRequest(hostId, stageId, participantId))
+            updateStages()
             Success()
         }, errorBlock = { e ->
             Timber.e(e, "Failed to disconnect from current stage")
