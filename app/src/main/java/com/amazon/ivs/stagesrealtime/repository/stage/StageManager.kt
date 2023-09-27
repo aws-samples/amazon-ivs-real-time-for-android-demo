@@ -430,6 +430,13 @@ class StageManager(
         currentStage?.refreshStrategy()
         currentStage?.removeRenderer(renderer)
         currentStage?.leave()
+        guestJoinTime = 0L
+        guestVideoTime = 0L
+        creatorJoinTime = 0L
+        creatorVideoTime = 0L
+        lastVideoStats = StageEvent.VideoStatsUpdated()
+        _onEvent.tryEmit(lastVideoStats)
+        Timber.d("Stage manager cleared")
     }
 
     fun switchAudio() {
