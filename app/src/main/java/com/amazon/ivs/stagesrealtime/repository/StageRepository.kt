@@ -246,7 +246,7 @@ class StageRepositoryImpl @Inject constructor(
         val stageCount = availableStages.size
         scrollDirection = direction
         val lastPosition = currentPosition
-        currentPosition = when (direction) {
+        val newPosition = when (direction) {
             ScrollDirection.UP -> if (currentPosition - 1 >= 0) currentPosition - 1 else stageCount - 1
             ScrollDirection.DOWN -> if (currentPosition + 1 < stageCount) currentPosition + 1 else 0
             ScrollDirection.NONE -> {
@@ -254,8 +254,28 @@ class StageRepositoryImpl @Inject constructor(
                 return
             }
         }
-        val positionChanged = lastPosition != currentPosition
-        Timber.d("Feed scrolled: $direction to index: $currentPosition, will refresh: $positionChanged")
+        // Handle old position
+        val positionChanged = lastPosition != newPosition
+        Timber.d("Feed scrolled: $direction to index: $newPosition, will refresh: $positionChanged, $currentlyJoinedStageId")
+        if (positionChanged) {
+            currentJoinJob?.cancel()
+            currentlyJoinedStageId = null
+            availableStages.update(
+                index = lastPosition,
+                keepCreatorVideo = false,
+                keepGuestVideo = false
+            )
+            availableStages.update(
+                index = newPosition,
+                keepCreatorVideo = false,
+                keepGuestVideo = false
+            )
+            updateStages()
+            disconnectFromCurrentStage()
+        }
+        // Handle new position
+        Timber.d("Stage position scrolled from: $currentPosition to: $newPosition, $currentlyJoinedStageId")
+        currentPosition = newPosition
         updateStages()
         val currentStage = availableStages.getOrNull(currentPosition)
         if (positionChanged && currentStage != null) {
@@ -354,6 +374,7 @@ class StageRepositoryImpl @Inject constructor(
                 }
             }
             if (currentPosition >= availableStages.count()) {
+                Timber.d("Stage at position does not exist - resetting: $currentPosition to: 0")
                 currentPosition = 0
             }
 
@@ -361,6 +382,7 @@ class StageRepositoryImpl @Inject constructor(
                 it.stageId == currentlyJoinedStageId
             }
             if (indexOfCurrentStage != -1 && indexOfCurrentStage != currentPosition) {
+                Timber.d("Stage index does not match - updating: $currentPosition to: $indexOfCurrentStage")
                 currentPosition = indexOfCurrentStage
             }
 
@@ -463,6 +485,7 @@ class StageRepositoryImpl @Inject constructor(
     )
 
     override fun clearResources() {
+        Timber.d("Clearing resources: $currentPosition")
         stageJobs.forEach { it.cancel() }
         stageJobs.clear()
         chatManager.clearPreviousChat()
@@ -473,6 +496,7 @@ class StageRepositoryImpl @Inject constructor(
         currentParticipantId = null
         availableStages.clear()
         destroyApi()
+        Timber.d("Cleared resources: $currentPosition")
     }
 
     override fun destroyApi() {
@@ -487,6 +511,7 @@ class StageRepositoryImpl @Inject constructor(
             val hostId = currentStageIdByPosition ?: return@runCancellableCatching Failure(Unit)
             Timber.d("Disconnecting from $hostId, $stageId, $participantId")
             api.disconnectUser(DisconnectUserRequest(hostId, stageId, participantId))
+            Timber.d("Disconnected from: $hostId, $stageId, $participantId")
             updateStages()
             Success()
         }, errorBlock = { e ->
@@ -879,6 +904,7 @@ class StageRepositoryImpl @Inject constructor(
                     stageManager.leaveStage()
                     Timber.d("Stage is GONE: ${availableStages.size}, $currentPosition")
                     availableStages.getOrNull(currentPosition)?.let { joinStage(it) } ?: run {
+                        Timber.d("Current stage not found - resetting: $currentPosition to: 0")
                         currentPosition = 0
                         currentStageType = null
                         currentToken = null

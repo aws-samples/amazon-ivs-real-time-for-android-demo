@@ -2,6 +2,12 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <data>
+        <variable
+            name="versionSDK"
+            type="String" />
+    </data>
+
     <LinearLayout xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -141,7 +147,7 @@
                         android:id="@+id/sdk_version"
                         layout="@layout/item_debug_data"
                         app:dataName='@{@string/sdk_version}'
-                        app:dataValue='@{"-"}' />
+                        app:dataValue='@{versionSDK}' />
 
                 </LinearLayout>
 

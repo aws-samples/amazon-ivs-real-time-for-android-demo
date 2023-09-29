@@ -89,10 +89,10 @@ fun MutableList<StageUIModel>.update(
         val isAudioMode = _isAudioMode ?: stage.isAudioMode
         val guestTTV = if (keepGuestVideo) _guestTTV ?: stage.guestTTV else _guestTTV
         val guestLatency = if (keepGuestVideo) _guestLatency ?: stage.guestLatency else _guestLatency
+        val guestVideo = if (keepGuestVideo) _guestVideo ?: stage.guestVideo else _guestVideo
         val creatorTTV = if (keepCreatorVideo) _creatorTTV ?: stage.creatorTTV else _creatorTTV
         val creatorLatency = if (keepCreatorVideo) _creatorLatency ?: stage.creatorLatency else _creatorLatency
         val creatorVideo = if (keepCreatorVideo) _creatorVideo ?: stage.creatorVideo else _creatorVideo
-        val guestVideo = if (keepGuestVideo) _guestVideo ?: stage.guestVideo else _guestVideo
         val creatorAvatar = _creatorAvatar ?: stage.creatorAvatar
         val selfAvatar = _selfAvatar ?: stage.selfAvatar
         val seats = _seats ?: stage.seats.map {
