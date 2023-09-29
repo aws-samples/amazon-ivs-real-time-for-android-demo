@@ -647,6 +647,10 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
         stageCenter.audioStage.audioSeats.adapter = seatAdapter
         stageCenter.videoStage.creatorVideo.removeAllViews()
         stageCenter.videoStage.guestVideo.removeAllViews()
+        stageCenter.videoStage.creatorVideoStats.text = ""
+        stageCenter.videoStage.creatorPkVideoStats.text = ""
+        stageCenter.videoStage.guestVideoStats.text = ""
+        stageCenter.videoStage.guestPkVideoStats.text = ""
         seatAdapter.submitList(emptySeats)
     }
 
