@@ -113,7 +113,7 @@
                     android:id="@+id/sdk_version_participant"
                     layout="@layout/item_debug_data"
                     app:dataName='@{@string/sdk_version}'
-                    app:dataValue='@{"-"}' />
+                    app:dataValue='@{versionSDK}' />
 
             </LinearLayout>
 

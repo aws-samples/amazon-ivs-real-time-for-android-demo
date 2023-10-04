@@ -489,6 +489,8 @@ class StageRepositoryImpl @Inject constructor(
         stageJobs.forEach { it.cancel() }
         stageJobs.clear()
         chatManager.clearPreviousChat()
+        currentJoinJob?.cancel()
+        currentJoinJob = null
         currentlyJoinedStageId = null
         currentPosition = 0
         currentStageType = null
