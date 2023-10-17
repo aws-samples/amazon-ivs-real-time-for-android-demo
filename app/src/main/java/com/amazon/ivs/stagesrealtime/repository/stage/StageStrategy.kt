@@ -62,7 +62,7 @@ class StageStrategy(
     private val _rtcData = MutableStateFlow(RTCData())
     private val _rtcDataList = MutableStateFlow(emptyList<RTCData>())
 
-    var isAudioOff = false
+    var isAudioOff = true
         private set
     var isVideoOff = false
         private set
