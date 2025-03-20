@@ -1,6 +1,5 @@
 package com.amazon.ivs.stagesrealtime.common.extensions
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
 

@@ -10,6 +10,7 @@ import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_BOTTOM
 import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_LEFT
 import com.amazon.ivs.stagesrealtime.common.DEFAULT_COLOR_RIGHT
 import com.amazon.ivs.stagesrealtime.common.RMS_SPEAKING_THRESHOLD
+import com.amazon.ivs.stagesrealtime.common.extensions.formatString
 import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.amazon.ivs.stagesrealtime.repository.models.ParticipantAttributes
 import com.amazon.ivs.stagesrealtime.repository.models.RTCLatency
@@ -206,14 +207,14 @@ class StageManager(
                     val ttv = if (isHost) {
                         if (creatorVideoTime > creatorJoinTime) {
                             val time = (creatorVideoTime - creatorJoinTime) / 1000f
-                            String.format("%.2f", time)
+                            formatString("%.2f", time)
                         } else {
                             null
                         }
                     } else {
                         if (guestVideoTime > guestJoinTime) {
                             val time = (guestVideoTime - guestJoinTime) / 1000f
-                            String.format("%.2f", time)
+                            formatString("%.2f", time)
                         } else {
                             null
                         }

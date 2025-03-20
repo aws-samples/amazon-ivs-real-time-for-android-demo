@@ -42,7 +42,6 @@ import com.amazon.ivs.stagesrealtime.repository.stage.StageEvent
 import com.amazon.ivs.stagesrealtime.repository.stage.StageManager
 import com.amazon.ivs.stagesrealtime.repository.stage.usecases.CreateStageUseCase
 import com.amazon.ivs.stagesrealtime.repository.stage.usecases.JoinStageUseCase
-import com.amazon.ivs.stagesrealtime.ui.stage.models.ChatUIMessage
 import com.amazon.ivs.stagesrealtime.ui.stage.models.ScrollDirection
 import com.amazon.ivs.stagesrealtime.ui.stage.models.StageListModel
 import com.amazon.ivs.stagesrealtime.ui.stage.models.StageUIModel
@@ -51,9 +50,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -61,142 +58,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Singleton
 
-/**
- * Handles the stage functionality and delivers prepared
- * state data to the UI
- */
-interface StageRepository {
-    /**
-     * Triggered whenever something changes that needs to be reflected on the UI.
-     * It holds the state for the current active stage as well as the state for surrounding stages in the list.
-     */
-    val stages: StateFlow<StageListModel>
-
-    /**
-     * Triggered whenever a new message is received from the [ChatManager] to be shown on the UI.
-     */
-    val messages: StateFlow<List<ChatUIMessage>>
-
-    /**
-     * Triggered whenever someone sends a "heart" event in [ChatManager].
-     */
-    val onStageLike: Flow<Unit>
-
-    /**
-     * Triggered whenever PK mode score is updated.
-     */
-    val onPKModeScore: Flow<PKModeScore>
-
-    /**
-     * Triggered whenever the PK mode is started for voting.
-     */
-    val onVoteStart: Flow<PKModeSessionTime>
-
-    /**
-     * Triggered whenever the RTC data for stage is collected.
-     */
-    val stageRTCData: StateFlow<RTCData>
-
-    /**
-     * Triggered whenever the RTC data for all stage participants is collected.
-     */
-    val stageRTCDataList: StateFlow<List<RTCData>>
-
-    /**
-     * Creates a new stage.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     */
-    suspend fun createStage(type: StageType): Response<Error.CreateStageError, Ok>
-
-    /**
-     * Deletes current active stage.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     */
-    suspend fun deleteStage(): Response<Error.DeleteStageError, Ok>
-
-    /**
-     * Requests a list of stages from the backend.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     * The first stage from the list will be joined if not joined yet.
-     * This function should be called when and while you are NOT the stage creator.
-     */
-    suspend fun getStages(): Response<Error.GetStagesError, Ok>
-
-    /**
-     * Handles the selected seat and sends a backend request to notify other stage participants.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     */
-    suspend fun onSeatClicked(index: Int): Response<Error.UpdateSeatsError, Ok>
-
-    /**
-     * Starts publishing local user media.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     */
-    suspend fun startPublishing(mode: StageMode, updateMode: Boolean = true): Response<Error.JoinStageError, Ok>
-
-    /**
-     * Stops publishing local user media.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     */
-    suspend fun stopPublishing(): Response<Error.LeaveStageError, Ok>
-
-    /**
-     * Disconnects from the currently joined stage if connected.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown, but only if
-     * a stage was connected.
-     */
-    suspend fun disconnectFromCurrentStage(): Response<Unit, Ok>
-
-    /**
-     * Kicks a participant from the current stage.
-     * This can only be used by stage creator and only when in Guest or PK mode.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     */
-    suspend fun kickParticipant(): Response<Error.KickParticipantError, Ok>
-
-    /**
-     * Sends a message to backend for voting for the two participants in PK mode.
-     * If successful, then the [stages] flow will be updated, otherwise error will be thrown.
-     */
-    suspend fun castVote(voteHost: Boolean): Response<Error.CastVoteError, Ok>
-
-    /**
-     * Returns the [UserAvatar] for the PK mode winner.
-     */
-    suspend fun getPKModeWinnerAvatar(hostWin: Boolean): UserAvatar
-
-    /**
-     * Sends a request to backend to validate the connection code.
-     * Used to verify the connection with the server before connecting to a stage.
-     */
-    suspend fun verifyConnectionCode(): Response<Error.CustomerCodeError, Ok>
-
-    /**
-     * Switches the camera facing from front to back and vice versa
-     */
-    suspend fun switchFacing()
-
-    /**
-     * Shifts the stage list by one to the given direction if possible
-     */
-    suspend fun scrollStages(direction: ScrollDirection)
-
-    // Self explanatory functions
-    fun sendMessage(message: String)
-    fun likeStage()
-    fun isCurrentStageVideo(): Boolean
-    fun isStageCreator(): Boolean
-    fun isParticipating(): Boolean
-    fun switchAudio()
-    fun switchVideo()
-    fun canScroll(): Boolean
-    fun requestRTCStats()
-    fun clearResources()
-    fun destroyApi()
-}
-
-class StageRepositoryImpl @Inject constructor(
+@Singleton
+class StageRepository @Inject constructor(
     @IOScope private val ioScope: CoroutineScope,
     @ApplicationContext private val context: Context,
     private val networkClient: NetworkClient,
@@ -204,8 +69,7 @@ class StageRepositoryImpl @Inject constructor(
     private val appSettingsStore: DataStore<AppSettings>,
     private val createStageUseCase: CreateStageUseCase,
     private val joinStageUseCase: JoinStageUseCase,
-) : StageRepository {
-    private val api get() = networkClient.getOrCreateApi()
+) {
     private val availableStages = mutableListOf<StageUIModel>()
     private val stageJobs = mutableListOf<Job>()
 
@@ -230,19 +94,19 @@ class StageRepositoryImpl @Inject constructor(
     private val currentStageIdByPosition get() = availableStages.getOrNull(currentPosition)?.stageId
 
     // Public observable flows used by UI
-    override val messages = chatManager.messages
-    override val onStageLike = chatManager.onStageLike
-    override val onPKModeScore = merge(chatManager.onPKModeScore, onActiveSessionScore.receiveAsFlow())
-    override val onVoteStart = merge(chatManager.onVoteStart, onActiveSessionTime.receiveAsFlow())
-    override val stageRTCData = _stageRTCData.asStateFlow()
-    override val stageRTCDataList = _stageRTCDataList.asStateFlow()
-    override val stages by lazy {
+    val messages = chatManager.messages
+    val onStageLike = chatManager.onStageLike
+    val onPKModeScore = merge(chatManager.onPKModeScore, onActiveSessionScore.receiveAsFlow())
+    val onVoteStart = merge(chatManager.onVoteStart, onActiveSessionTime.receiveAsFlow())
+    val stageRTCData = _stageRTCData.asStateFlow()
+    val stageRTCDataList = _stageRTCDataList.asStateFlow()
+    val stages by lazy {
         createOnSeatsUpdatedJob()
         createOnModeChangedJob()
         _stages.asStateFlow()
     }
 
-    override suspend fun scrollStages(direction: ScrollDirection) {
+    suspend fun scrollStages(direction: ScrollDirection) {
         val stageCount = availableStages.size
         scrollDirection = direction
         val lastPosition = currentPosition
@@ -285,8 +149,8 @@ class StageRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun createStage(type: StageType): Response<Error.CreateStageError, Ok> {
-        val response = createStageUseCase.createStage(type)
+    suspend fun createStage(type: StageType): Response<Error.CreateStageError, Ok> {
+        val response = createStageUseCase(type)
         return binding {
             val joinedStage = response.bind()
             currentToken = joinedStage.token
@@ -311,7 +175,7 @@ class StageRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun onSeatClicked(index: Int)= runCancellableCatching(
+    suspend fun onSeatClicked(index: Int)= runCancellableCatching(
         tryBlock = {
             val stage = availableStages.getOrNull(currentPosition)
                 ?: return@runCancellableCatching Failure(Error.UpdateSeatsError)
@@ -344,7 +208,7 @@ class StageRepositoryImpl @Inject constructor(
             } else {
                 stopPublishing()
             }
-            api.updateSeats(UpdateSeatsRequest(
+            networkClient.getOrCreateApi().updateSeats(UpdateSeatsRequest(
                 hostId = stage.stageId,
                 userId = appSettingsStore.getStageId(),
                 seats = seats.getIDs()
@@ -356,9 +220,9 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override suspend fun getStages() = runCancellableCatching(
+    suspend fun getStages() = runCancellableCatching(
         tryBlock = {
-            val response = api.getStages()
+            val response = networkClient.getOrCreateApi().getStages()
             Timber.d("Stages received: ${availableStages.count()}, $response, $currentPosition, $currentlyJoinedStageId")
             @Suppress("UNNECESSARY_SAFE_CALL")
             // There could be a race condition where stage.stageId can throw a null pointer so we need the
@@ -405,10 +269,10 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override suspend fun verifyConnectionCode() = runCancellableCatching(
+    suspend fun verifyConnectionCode() = runCancellableCatching(
         tryBlock = {
             Timber.d("Verifying the connection with the API")
-            val response = api.verifyConnectionCode()
+            val response = networkClient.getOrCreateApi().verifyConnectionCode()
             if (response.isSuccessful) {
                 Success()
             } else {
@@ -420,13 +284,13 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override suspend fun startPublishing(mode: StageMode, updateMode: Boolean) = runCancellableCatching(
+    suspend fun startPublishing(mode: StageMode, updateMode: Boolean = true) = runCancellableCatching(
         tryBlock = {
             Timber.d("Start publishing: $mode, $currentStageIdByPosition, $currentStageType")
             val type = currentStageType ?: return@runCancellableCatching Failure(Error.JoinStageError)
             val stageIdCurrent = currentStageIdByPosition ?: return@runCancellableCatching Failure(Error.JoinStageError)
             if (updateMode) {
-                api.updateStageMode(UpdateStageModeRequest(
+                networkClient.getOrCreateApi().updateStageMode(UpdateStageModeRequest(
                     hostId = stageIdCurrent,
                     userId = appSettingsStore.getStageId(),
                     mode = mode
@@ -445,9 +309,10 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override suspend fun stopPublishing() = runCancellableCatching(
+    suspend fun stopPublishing() = runCancellableCatching(
         tryBlock = {
             Timber.d("Leave stage: $currentParticipantId, $currentStageIdByPosition")
+            val api = networkClient.getOrCreateApi()
             val stageIdCurrent = currentStageIdByPosition ?: return@runCancellableCatching Failure(Error.LeaveStageError)
             if (currentStageType == StageType.AUDIO) {
                 val stage = availableStages.getOrNull(currentPosition)
@@ -484,7 +349,7 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override fun clearResources() {
+    fun clearResources() {
         Timber.d("Clearing resources: $currentPosition")
         stageJobs.forEach { it.cancel() }
         stageJobs.clear()
@@ -501,18 +366,18 @@ class StageRepositoryImpl @Inject constructor(
         Timber.d("Cleared resources: $currentPosition")
     }
 
-    override fun destroyApi() {
+    fun destroyApi() {
         networkClient.destroyApi()
     }
 
-    override suspend fun disconnectFromCurrentStage() = runCancellableCatching(
+    suspend fun disconnectFromCurrentStage() = runCancellableCatching(
         tryBlock = {
             val stageId = appSettingsStore.getStageId()
             stageManager.leaveStage()
             val participantId = currentParticipantId ?: return@runCancellableCatching Failure(Unit)
             val hostId = currentStageIdByPosition ?: return@runCancellableCatching Failure(Unit)
             Timber.d("Disconnecting from $hostId, $stageId, $participantId")
-            api.disconnectUser(DisconnectUserRequest(hostId, stageId, participantId))
+            networkClient.getOrCreateApi().disconnectUser(DisconnectUserRequest(hostId, stageId, participantId))
             Timber.d("Disconnected from: $hostId, $stageId, $participantId")
             updateStages()
             Success()
@@ -522,11 +387,17 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override suspend fun kickParticipant() = runCancellableCatching(
+    suspend fun kickParticipant() = runCancellableCatching(
         tryBlock = {
             Timber.d("Kicking participant and updating stage to NONE")
             val stageId = appSettingsStore.getStageId()
-            api.updateStageMode(UpdateStageModeRequest(hostId = stageId, userId = stageId, mode = StageMode.NONE))
+            networkClient.getOrCreateApi().updateStageMode(
+                body = UpdateStageModeRequest(
+                    hostId = stageId,
+                    userId = stageId,
+                    mode = StageMode.NONE
+                )
+            )
             Success()
         }, errorBlock = { e ->
             Timber.e(e, "Failed to kick participant")
@@ -534,9 +405,9 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override suspend fun deleteStage() = runCancellableCatching(
+    suspend fun deleteStage() = runCancellableCatching(
         tryBlock = {
-            api.deleteStage(DeleteStageRequest(appSettingsStore.getStageId()))
+            networkClient.getOrCreateApi().deleteStage(DeleteStageRequest(appSettingsStore.getStageId()))
             Timber.d("Stage deleted")
             availableStages.clear()
             stageManager.leaveStage()
@@ -549,7 +420,7 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override suspend fun castVote(voteHost: Boolean) = runCancellableCatching(
+    suspend fun castVote(voteHost: Boolean) = runCancellableCatching(
         tryBlock = {
             val hostId = currentStageIdByPosition ?: return@runCancellableCatching Failure(Error.CastVoteError)
             val voteBody = VoteRequest(
@@ -559,7 +430,7 @@ class StageRepositoryImpl @Inject constructor(
                 else stageManager.getGuestId()!!
             )
             Timber.d("Casting vote for $voteBody")
-            api.castVote(voteBody)
+            networkClient.getOrCreateApi().castVote(voteBody)
             Success()
         }, errorBlock = { e ->
             Timber.d(e, "Failed to cast vote")
@@ -567,37 +438,37 @@ class StageRepositoryImpl @Inject constructor(
         }
     )
 
-    override fun sendMessage(message: String) {
+    fun sendMessage(message: String) {
         chatManager.sendMessage(SendMessageRequest(message))
     }
 
-    override fun likeStage() {
+    fun likeStage() {
         chatManager.likeStage()
     }
 
-    override fun isCurrentStageVideo() = stageManager.isCurrentStageVideo()
+    fun isCurrentStageVideo() = stageManager.isCurrentStageVideo()
 
-    override fun isStageCreator() = stageManager.isStageCreator()
+    fun isStageCreator() = stageManager.isStageCreator()
 
-    override fun isParticipating() = stageManager.isParticipating()
+    fun isParticipating() = stageManager.isParticipating()
 
-    override fun switchAudio() {
+    fun switchAudio() {
         if (isParticipating()) stageManager.switchAudio()
     }
 
-    override fun switchVideo() {
+    fun switchVideo() {
         if (isParticipating()) stageManager.switchVideo()
     }
 
-    override suspend fun switchFacing() {
+    suspend fun switchFacing() {
         if (isParticipating()) stageManager.switchFacing()
     }
 
-    override fun canScroll() = availableStages.size > 1 && !isParticipating()
+    fun canScroll() = availableStages.size > 1 && !isParticipating()
 
-    override fun requestRTCStats() = stageManager.requestRTCStats()
+    fun requestRTCStats() = stageManager.requestRTCStats()
 
-    override suspend fun getPKModeWinnerAvatar(hostWin: Boolean): UserAvatar {
+    suspend fun getPKModeWinnerAvatar(hostWin: Boolean): UserAvatar {
         availableStages.getOrNull(currentPosition)?.let { stage ->
             val isCreator = stage.isCreator
             val isParticipant = stage.isParticipant
@@ -634,7 +505,7 @@ class StageRepositoryImpl @Inject constructor(
         if (isStageCreator() || stage.stageId == currentlyJoinedStageId) return
         currentJoinJob = launchMain {
             Timber.d("Attempting join stage - $stage; $currentlyJoinedStageId")
-            val response = joinStageUseCase.joinStage(stage)
+            val response = joinStageUseCase(stage)
             response.onSuccess { joinedStage ->
                 // If the stage was successfully joined in backend - create and observe the Stage object locally
                 Timber.d("Stage joined: $joinedStage, $currentStageType")
@@ -712,7 +583,7 @@ class StageRepositoryImpl @Inject constructor(
         tryBlock = {
             Timber.d("Creating new local chat: $hostId")
             val userAvatar = appSettingsStore.getUserAvatar()
-            val response = api.createChat(
+            val response = networkClient.getOrCreateApi().createChat(
                 CreateChatRequest(
                     hostId = hostId,
                     userId = userId,

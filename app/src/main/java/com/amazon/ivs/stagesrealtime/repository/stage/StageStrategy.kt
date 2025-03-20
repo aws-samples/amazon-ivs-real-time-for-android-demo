@@ -22,8 +22,12 @@ import com.amazonaws.ivs.broadcast.Device.Descriptor.Position
 import com.amazonaws.ivs.broadcast.DeviceDiscovery
 import com.amazonaws.ivs.broadcast.ImageLocalStageStream
 import com.amazonaws.ivs.broadcast.ImagePreviewView
+import com.amazonaws.ivs.broadcast.LocalAudioStats
 import com.amazonaws.ivs.broadcast.LocalStageStream
+import com.amazonaws.ivs.broadcast.LocalVideoStats
 import com.amazonaws.ivs.broadcast.ParticipantInfo
+import com.amazonaws.ivs.broadcast.RemoteAudioStats
+import com.amazonaws.ivs.broadcast.RemoteVideoStats
 import com.amazonaws.ivs.broadcast.Stage
 import com.amazonaws.ivs.broadcast.Stage.Strategy
 import com.amazonaws.ivs.broadcast.Stage.SubscribeType
@@ -199,8 +203,12 @@ class StageStrategy(
         forViewer: Boolean = false
     ) = object : StageStream.Listener {
         override fun onMutedChanged(state: Boolean) { /* Ignored */ }
+        override fun onLocalAudioStats(stats: LocalAudioStats) { /* Ignored */ }
+        override fun onLocalVideoStats(stats: MutableList<LocalVideoStats>) { /* Ignored */ }
+        override fun onRemoteAudioStats(stats: RemoteAudioStats) { /* Ignored */ }
+        override fun onRemoteVideoStats(stats: RemoteVideoStats) { /* Ignored */ }
 
-        override fun onRTCStats(stats: MutableMap<String, MutableMap<String, String>>?) {
+        override fun onRTCStats(stats: MutableMap<String, MutableMap<String, String>>) {
             val isHost = joinedParticipants.find { it.participantId == participantId }?.isHost ?: _isCreator
             Timber.d("RTC stats for stream: $forAudio, $forViewer, $_currentMode, $subscribeType, $stageId, $participantId, $isHost")
             var rtcData = parseRTCData(stats = stats, isForViewer = forViewer, isHost = isHost)

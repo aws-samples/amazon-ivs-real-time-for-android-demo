@@ -19,13 +19,34 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.animation.doOnEnd
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.core.view.marginTop
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.amazon.ivs.stagesrealtime.R
-import com.amazon.ivs.stagesrealtime.common.*
-import com.amazon.ivs.stagesrealtime.common.extensions.*
+import com.amazon.ivs.stagesrealtime.common.DEFAULT_SCROLLING_DELAY
+import com.amazon.ivs.stagesrealtime.common.DebugShakeSensor
+import com.amazon.ivs.stagesrealtime.common.PK_MODE_TRANSITION_ANIMATION_DURATION
+import com.amazon.ivs.stagesrealtime.common.VOTE_STEP
+import com.amazon.ivs.stagesrealtime.common.emptySeats
+import com.amazon.ivs.stagesrealtime.common.extensions.collectLatestWithLifecycle
+import com.amazon.ivs.stagesrealtime.common.extensions.fadeAlpha
+import com.amazon.ivs.stagesrealtime.common.extensions.fadeIn
+import com.amazon.ivs.stagesrealtime.common.extensions.fadeOut
+import com.amazon.ivs.stagesrealtime.common.extensions.hideKeyboard
+import com.amazon.ivs.stagesrealtime.common.extensions.isKeyboardVisible
+import com.amazon.ivs.stagesrealtime.common.extensions.launchUI
+import com.amazon.ivs.stagesrealtime.common.extensions.navController
+import com.amazon.ivs.stagesrealtime.common.extensions.navigate
+import com.amazon.ivs.stagesrealtime.common.extensions.scaleInAndFade
+import com.amazon.ivs.stagesrealtime.common.extensions.scaleOutAndFade
+import com.amazon.ivs.stagesrealtime.common.extensions.setVisibleOr
+import com.amazon.ivs.stagesrealtime.common.extensions.showErrorBar
+import com.amazon.ivs.stagesrealtime.common.extensions.showKeyboard
+import com.amazon.ivs.stagesrealtime.common.extensions.toStringWithLeadingZero
+import com.amazon.ivs.stagesrealtime.common.viewBinding
 import com.amazon.ivs.stagesrealtime.databinding.FragmentStageBinding
 import com.amazon.ivs.stagesrealtime.databinding.ViewStageCardBinding
 import com.amazon.ivs.stagesrealtime.ui.BackHandler
@@ -38,7 +59,7 @@ import com.amazon.ivs.stagesrealtime.ui.stage.models.ScrollDirection
 import com.amazon.ivs.stagesrealtime.ui.stage.models.StageUIModel
 import kotlinx.coroutines.delay
 import timber.log.Timber
-import java.util.*
+import java.util.Date
 
 private const val TRANSITION_THRESHOLD = 500
 private const val CHAT_UPDATE_DELTA = 200L
@@ -528,7 +549,7 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
         ) { progress ->
             pkViews.forEach { pkView ->
                 pkView.alpha = progress
-                if (progress > 0f && pkView.visibility == View.GONE) {
+                if (progress > 0f && pkView.isGone) {
                     pkView.setVisibleOr(true)
                 }
             }
@@ -562,7 +583,7 @@ class StageFragment : Fragment(R.layout.fragment_stage), BackHandler {
             var animationStopped = false
             pkViews.forEach { pkView ->
                 pkView.alpha = 1f - progress
-                if (progress == 1f && pkView.visibility == View.VISIBLE) {
+                if (progress == 1f && pkView.isVisible) {
                     pkView.setVisibleOr(false)
                     if (!animationStopped) {
                         animationStopped = true
