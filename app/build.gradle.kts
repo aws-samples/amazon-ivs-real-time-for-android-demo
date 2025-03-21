@@ -86,5 +86,5 @@ dependencies {
 
     // Stages SDK
     // noinspection UseTomlInstead
-    implementation("com.amazonaws:ivs-broadcast:1.27.0:stages@aar")
+    implementation("com.amazonaws:ivs-broadcast:1.28.1:stages@aar")
 }

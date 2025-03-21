@@ -358,8 +358,12 @@ class StageManager(
     }
 
     suspend fun joinStage(
-        stageId: String, token: String, type: StageType,
-        isCreator: Boolean, selfParticipantId: String, hostParticipantId: String? = null
+        stageId: String,
+        token: String,
+        type: StageType,
+        isCreator: Boolean,
+        selfParticipantId: String,
+        hostParticipantId: String? = null
     ) {
         this.isCreator = isCreator
         this.hostParticipantId = hostParticipantId
