@@ -88,14 +88,14 @@ class StageManager(
 
         override fun onParticipantJoined(stage: Stage, info: ParticipantInfo) {
             if (info.isLocal) return
-            Timber.d("Participant joined: ${info.participantId}, ${info.userInfo}, $hostParticipantId, $stageId")
-            val isHost = hostParticipantId == null && stageId == info.userInfo["username"]
+            Timber.d("Participant joined: ${info.participantId}, ${info.attributes}, $hostParticipantId, $stageId")
+            val isHost = hostParticipantId == null && stageId == info.attributes["username"]
             if (isHost) {
                 hostParticipantId = info.participantId
-                Timber.d("Creator joined: ${info.participantId}, ${info.userInfo}, ${info.capabilities}")
+                Timber.d("Creator joined: ${info.participantId}, ${info.attributes}, ${info.capabilities}")
             }
             var participantUsername = ""
-            val userAvatar = info.userInfo?.let { attributes ->
+            val userAvatar = info.attributes?.let { attributes ->
                 participantUsername = attributes["username"] ?: ""
                 UserAvatar(
                     colorLeft = attributes[COLOR_LEFT_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_LEFT,
@@ -132,7 +132,7 @@ class StageManager(
         override fun onParticipantLeft(stage: Stage, info: ParticipantInfo) {
             if (info.isLocal) return
             if (joinedParticipants.removeIf { it.participantId == info.participantId }) {
-                Timber.d("Participant left: ${info.participantId}, ${info.userInfo}")
+                Timber.d("Participant left: ${info.participantId}, ${info.attributes}")
                 val creatorLeft = info.participantId == hostParticipantId
                 guestJoinTime = 0L
                 guestVideoTime = 0L
@@ -152,16 +152,16 @@ class StageManager(
 
         override fun onParticipantPublishStateChanged(stage: Stage, info: ParticipantInfo, state: Stage.PublishState) {
             if (info.isLocal) return
-            Timber.d("Participant: ${info.participantId}, ${info.userInfo} publish state changed: $state")
+            Timber.d("Participant: ${info.participantId}, ${info.attributes} publish state changed: $state")
 
             if (state != Stage.PublishState.PUBLISHED) return
-            val isHost = stageId == info.userInfo["username"]
+            val isHost = stageId == info.attributes["username"]
             if (isHost) {
                 creatorJoinTime = Date().time
-                Timber.d("Creator started publishing: ${info.participantId}, ${info.userInfo}, $creatorJoinTime, ${info.capabilities}")
+                Timber.d("Creator started publishing: ${info.participantId}, ${info.attributes}, $creatorJoinTime, ${info.capabilities}")
             } else {
                 guestJoinTime = Date().time
-                Timber.d("Guest started publishing: ${info.participantId}, ${info.userInfo}, $guestJoinTime, ${info.capabilities}")
+                Timber.d("Guest started publishing: ${info.participantId}, ${info.attributes}, $guestJoinTime, ${info.capabilities}")
             }
         }
 
@@ -171,7 +171,7 @@ class StageManager(
             state: Stage.SubscribeState
         ) {
             if (info.isLocal) return
-            Timber.d("Participant: ${info.participantId}, ${info.userInfo} subscribe state changed: $state")
+            Timber.d("Participant: ${info.participantId}, ${info.attributes} subscribe state changed: $state")
         }
 
         override fun onStreamsAdded(stage: Stage, info: ParticipantInfo, streams: MutableList<StageStream>) {
@@ -180,9 +180,9 @@ class StageManager(
             var isAudioOff = true
             var isVideoOff = true
             val isHost = info.participantId == hostParticipantId
-            Timber.d("Participant streams added: ${info.participantId}, ${info.userInfo}, $isHost, ${streams.count()}")
+            Timber.d("Participant streams added: ${info.participantId}, ${info.attributes}, $isHost, ${streams.count()}")
             var participantUsername = ""
-            val userAvatar = info.userInfo?.let { attributes ->
+            val userAvatar = info.attributes?.let { attributes ->
                 participantUsername = attributes["username"] ?: ""
                 UserAvatar(
                     colorLeft = attributes[COLOR_LEFT_ATTRIBUTE_NAME] ?: DEFAULT_COLOR_LEFT,
@@ -245,7 +245,7 @@ class StageManager(
                     }
                 }
             }
-            Timber.d("Participant streams added: ${info.participantId}, ${info.userInfo}, $isVideoOff, $isAudioOff, $isHost")
+            Timber.d("Participant streams added: ${info.participantId}, ${info.attributes}, $isVideoOff, $isAudioOff, $isHost")
             val attributes = ParticipantAttributes(
                 stageId = participantUsername,
                 participantId = info.participantId,
@@ -293,7 +293,7 @@ class StageManager(
 
         override fun onStreamsRemoved(stage: Stage, info: ParticipantInfo, streams: MutableList<StageStream>) {
             if (info.isLocal) return
-            Timber.d("onStreams removed for user ${info.participantId}, ${info.userInfo}")
+            Timber.d("onStreams removed for user ${info.participantId}, ${info.attributes}")
             val isVideoStreamRemoved = streams.any { it.streamType == StageStream.Type.VIDEO }
             if (stageType == StageType.AUDIO && isVideoStreamRemoved) return
 
@@ -314,7 +314,7 @@ class StageManager(
                         hostAudioStream = null
                     }
                 }
-                Timber.d("Participant streams removed: ${info.participantId}, ${info.userInfo}, $isHost")
+                Timber.d("Participant streams removed: ${info.participantId}, ${info.attributes}, $isHost")
                 guestJoinTime = 0L
                 guestVideoTime = 0L
                 lastVideoStats = lastVideoStats.copy(guestTTV = null, guestLatency = "")
@@ -339,7 +339,7 @@ class StageManager(
                 stream.getVideoPreview()
             }
             joinedParticipants.find { it.participantId == info.participantId }?.isMuted = isAudioOff ?: false
-            Timber.d("Participant streams muted: ${info.participantId}, ${info.userInfo}, $isVideoOff, $isAudioOff, $isHost")
+            Timber.d("Participant streams muted: ${info.participantId}, ${info.attributes}, $isVideoOff, $isAudioOff, $isHost")
             val event = if (isHost) StageEvent.CreatorUpdated(
                 participantId = info.participantId,
                 isAudioOff = isAudioOff,
