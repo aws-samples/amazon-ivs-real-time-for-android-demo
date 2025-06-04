@@ -2,7 +2,6 @@ package com.amazon.ivs.stagesrealtime.repository.stage.usecases
 
 import androidx.datastore.core.DataStore
 import com.amazon.ivs.stagesrealtime.common.Failure
-import com.amazon.ivs.stagesrealtime.common.Response
 import com.amazon.ivs.stagesrealtime.common.Success
 import com.amazon.ivs.stagesrealtime.common.VOTE_SESSION_TIME_SECONDS
 import com.amazon.ivs.stagesrealtime.common.extensions.asPKModeScore
@@ -33,20 +32,15 @@ data class JoinStageResponse(
     val pkModeSessionTime: PKModeSessionTime?
 )
 
-interface JoinStageUseCase {
-    suspend fun joinStage(stage: StageUIModel): Response<Error.JoinStageError, JoinStageResponse>
-}
-
 @Singleton
-class JoinStageUseCaseImpl @Inject constructor(
+class JoinStageUseCase @Inject constructor(
     private val networkClient: NetworkClient,
     private val appSettingsStore: DataStore<AppSettings>
-) : JoinStageUseCase {
-    private val api get() = networkClient.getOrCreateApi()
-
-    override suspend fun joinStage(stage: StageUIModel) = runCancellableCatching(
+) {
+    suspend operator fun invoke(stage: StageUIModel) = runCancellableCatching(
         tryBlock = {
             // Make a join stage request to backend
+            val api = networkClient.getOrCreateApi()
             val userAvatar = appSettingsStore.getUserAvatar()
             val stageId = appSettingsStore.getStageId()
             val request = JoinStageRequest(

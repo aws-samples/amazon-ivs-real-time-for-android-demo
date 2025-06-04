@@ -2,7 +2,6 @@ package com.amazon.ivs.stagesrealtime.repository.stage.usecases
 
 import androidx.datastore.core.DataStore
 import com.amazon.ivs.stagesrealtime.common.Failure
-import com.amazon.ivs.stagesrealtime.common.Response
 import com.amazon.ivs.stagesrealtime.common.Success
 import com.amazon.ivs.stagesrealtime.common.emptySeats
 import com.amazon.ivs.stagesrealtime.common.extensions.getCustomerCode
@@ -32,20 +31,15 @@ data class CreateStageResponse(
     val stageUIModel: StageUIModel
 )
 
-interface CreateStageUseCase {
-    suspend fun createStage(type: StageType): Response<Error.CreateStageError, CreateStageResponse>
-}
-
 @Singleton
-class CreateStageUseCaseImpl  @Inject constructor(
+class CreateStageUseCase  @Inject constructor(
     private val networkClient: NetworkClient,
     private val appSettingsStore: DataStore<AppSettings>,
-) : CreateStageUseCase {
-    private val api get() = networkClient.getOrCreateApi()
-
-    override suspend fun createStage(type: StageType) = runCancellableCatching(
+) {
+    suspend operator fun invoke(type: StageType) = runCancellableCatching(
         tryBlock = {
             // Make backend request for creating a stage instance in DB
+            val api = networkClient.getOrCreateApi()
             val userAvatar = appSettingsStore.getUserAvatar()
             val stageId = appSettingsStore.getStageId()
             val customerCode = appSettingsStore.getCustomerCode()

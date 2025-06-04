@@ -59,7 +59,7 @@ class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
         navController.navigateUp()
     }
 
-    private fun setupCollectors() = with(binding) {
+    private fun setupCollectors() {
         collectLatestWithLifecycle(viewModel.onCustomerCodeSet) { isSet ->
             Timber.d("Valid api key and code received: $isSet")
             processingBarcode = false
@@ -85,7 +85,7 @@ class ScannerFragment : Fragment(R.layout.fragment_scanner), BackHandler {
         cameraProviderFuture.addListener({
                 processCameraProvider = cameraProviderFuture.get()
                 cameraPreview = Preview.Builder().setTargetRotation(previewView.display.rotation).build()
-                cameraPreview.setSurfaceProvider(previewView.surfaceProvider)
+                cameraPreview.surfaceProvider = previewView.surfaceProvider
                 processCameraProvider.bindToLifecycle(this@ScannerFragment, cameraSelector, cameraPreview)
 
                 bindInputAnalyser()

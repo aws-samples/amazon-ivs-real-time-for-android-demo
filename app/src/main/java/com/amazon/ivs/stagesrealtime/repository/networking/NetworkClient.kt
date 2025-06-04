@@ -7,7 +7,6 @@ import com.amazon.ivs.stagesrealtime.common.extensions.json
 import com.amazon.ivs.stagesrealtime.repository.models.AppSettings
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -37,8 +36,8 @@ class NetworkClient @Inject constructor(private val appSettingsStore: DataStore<
     private var _api: Api? = null
     private var _currentBaseUrl = ""
 
-    fun getOrCreateApi(): Api {
-        val customerCode = runBlocking { appSettingsStore.data.first().customerCode }
+    suspend fun getOrCreateApi(): Api {
+        val customerCode = appSettingsStore.data.first().customerCode
         val api = if (_currentBaseUrl == customerCode && _api != null) {
             _api!!
         } else {
@@ -61,9 +60,9 @@ class NetworkClient @Inject constructor(private val appSettingsStore: DataStore<
         _currentBaseUrl = ""
     }
 
-    private fun getOkHttpClient(): OkHttpClient {
+    private suspend fun getOkHttpClient(): OkHttpClient {
         // runBlocking is used to have the same synchronous behaviour as with SharedPreferences
-        val apiKey = runBlocking { appSettingsStore.data.first().apiKey }
+        val apiKey = appSettingsStore.data.first().apiKey
         Timber.d("Adding header: $apiKey")
         val builder = OkHttpClient.Builder()
             .connectTimeout(REQUEST_TIMEOUT, TimeUnit.SECONDS)

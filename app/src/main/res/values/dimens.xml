@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <dimen name="padding_large">32dp</dimen>
     <dimen name="padding_big">22dp</dimen>
     <dimen name="padding_medium">16dp</dimen>
@@ -73,7 +73,6 @@
 
     <dimen name="slider_track_height">7dp</dimen>
     <dimen name="slider_thumb_radius">8dp</dimen>
-    <dimen name="mtrl_slider_track_side_padding" tools:ignore="PrivateResource">17dp</dimen>
 
     <integer name="bitrate_step">50000</integer>
     <integer name="bitrate_max">900000</integer>

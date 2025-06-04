@@ -2,11 +2,11 @@ package com.amazon.ivs.stagesrealtime.ui.views
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
+import androidx.core.graphics.toColorInt
 import com.amazon.ivs.stagesrealtime.R
 import com.amazon.ivs.stagesrealtime.common.extensions.setVisibleOr
 import com.amazon.ivs.stagesrealtime.databinding.ViewUserAvatarBinding
@@ -56,7 +56,7 @@ class UserAvatarView @JvmOverloads constructor(
     }
 
     private fun View.setBackgroundTint(color: String) {
-        backgroundTintList = ColorStateList.valueOf(Color.parseColor(color))
+        backgroundTintList = ColorStateList.valueOf(color.toColorInt())
     }
 
     private fun View.setMargins(margin: Int) {

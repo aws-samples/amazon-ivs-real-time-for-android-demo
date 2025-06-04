@@ -11,21 +11,19 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-        android:name=".App"
-        android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.StagesRealtime"
-        tools:targetApi="31">
+        android:name=".App"
+        android:theme="@style/Theme.StagesRealtime">
         <activity
             android:name=".ui.MainActivity"
             android:screenOrientation="portrait"
             android:exported="true"
-            tools:ignore="LockedOrientationActivity">
+            tools:ignore="DiscouragedApi,LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

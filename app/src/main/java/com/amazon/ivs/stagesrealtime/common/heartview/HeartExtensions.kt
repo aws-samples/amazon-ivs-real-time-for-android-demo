@@ -5,17 +5,17 @@ import android.content.res.TypedArray
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.drawable.BitmapDrawable
 import android.widget.ImageView
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toDrawable
 import com.amazon.ivs.stagesrealtime.R
 import com.amazon.ivs.stagesrealtime.common.HEART_ANIMATION_DURATION
 import com.amazon.ivs.stagesrealtime.common.HEART_ANIMATION_FACTOR
 
 fun ImageView.createHeartView(): ImageView {
-    val heart: Bitmap? = context.createHeart()
-    setImageDrawable(BitmapDrawable(resources, heart))
+    val heart = context.createHeart()?.toDrawable(resources)
+    setImageDrawable(heart)
     return this
 }
 

@@ -34,6 +34,8 @@ fun Int.toStringThousandOrZero(): String {
     return if (thousandValue > 0) "${thousandValue}k" else "0"
 }
 
+fun formatString(pattern: String, vararg args: Any?) = String.format(Locale.getDefault(), pattern, *args)
+
 fun Map<String, String>.asPKModeScore(hostId: String, shouldResetScore: Boolean = false): PKModeScore {
     val hostIdIndex = keys.indexOf(hostId).takeIf { it >= 0 } ?: 0
     val guestIdIndex = if (hostIdIndex == 0) 1 else 0

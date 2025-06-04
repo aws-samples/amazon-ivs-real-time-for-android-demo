@@ -37,7 +37,9 @@ suspend inline fun <F, S> binding(crossinline block: suspend SuspendableResultBi
     }
 }
 
-internal object BindCancellationException : CancellationException(null as String?)
+internal object BindCancellationException : CancellationException(null as String?) {
+    private fun readResolve(): Any = BindCancellationException
+}
 
 interface SuspendableResultBinding<F> : CoroutineScope {
     suspend fun <S> Response<F, S>.bind(): S

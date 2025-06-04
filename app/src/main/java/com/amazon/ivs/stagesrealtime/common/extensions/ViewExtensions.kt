@@ -128,7 +128,7 @@ fun FragmentActivity.showKeyboard() {
 @SuppressLint("ShowToast")
 private fun showErrorBar(parentView: View, errorView: ViewErrorBarBinding, onDismissed: () -> Unit) {
     val snackBar = Snackbar.make(parentView, "", Snackbar.LENGTH_LONG)
-    val snackBarLayout = snackBar.view as Snackbar.SnackbarLayout
+    val snackBarLayout = snackBar.view as FrameLayout
     snackBarLayout.setBackgroundColor(Color.TRANSPARENT)
     snackBarLayout.addView(errorView.root)
     snackBar.addCallback(object : BaseCallback<Snackbar>() {
