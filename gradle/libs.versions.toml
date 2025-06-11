@@ -1,23 +1,24 @@
 [versions]
-agp = "8.9.1"
-appcompat = "1.7.0"
+agp = "8.10.1"
+appcompat = "1.7.1"
 barcodeScanning = "17.3.0"
 cameraCamera2 = "1.4.2"
 constraintlayout = "2.2.1"
-converterGson = "2.11.0"
-datastore = "1.1.4"
-fragmentKtx = "1.8.6"
-hiltAndroid = "2.56.1"
+converterGson = "3.0.0"
+datastore = "1.1.7"
+fragmentKtx = "1.8.8"
+hiltAndroid = "2.56.2"
+ivsBroadcast = "1.30.1"
 ivsChatMessaging = "1.1.0"
 kotlin = "2.1.10"
 kotlinx-serialization-json = "1.8.1"
-kotlinxCoroutinesAndroid = "1.10.1"
-kotlinxCoroutinesCore = "1.10.1"
+kotlinxCoroutinesAndroid = "1.10.2"
+kotlinxCoroutinesCore = "1.10.2"
 ksp = "2.1.10-1.0.31"
-lifecycleRuntimeKtx = "2.8.7"
+lifecycleRuntimeKtx = "2.9.1"
 material = "1.12.0"
-navigationFragmentKtx = "2.8.9"
-okhttp = "5.0.0-alpha.14"
+navigationFragmentKtx = "2.9.0"
+okhttp = "5.0.0-alpha.16"
 retrofit2KotlinxSerializationConverter = "1.0.0"
 timber = "5.0.1"
 
@@ -36,6 +37,7 @@ barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref =
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltAndroid" }
+ivs-broadcast = { module = "com.amazonaws:ivs-broadcast", version.ref = "ivsBroadcast" }
 ivs-chat-messaging = { module = "com.amazonaws:ivs-chat-messaging", version.ref = "ivsChatMessaging" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
