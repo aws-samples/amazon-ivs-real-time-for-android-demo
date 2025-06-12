@@ -85,6 +85,10 @@ dependencies {
     implementation(libs.ivs.chat.messaging)
 
     // Stages SDK
-    // noinspection UseTomlInstead
-    implementation("com.amazonaws:ivs-broadcast:1.28.1:stages@aar")
+    implementation(libs.ivs.broadcast) {
+        artifact {
+            classifier = "stages"
+            type = "aar"
+        }
+    }
 }
