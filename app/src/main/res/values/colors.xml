@@ -1,36 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#000000</color>
-    <color name="black_light">#303030</color>
-    <color name="black_input">#1F1F23</color>
-    <color name="black_80">#CC2B2B2B</color>
-    <color name="black_40">#66000000</color>
-    <color name="white">#FFFFFF</color>
-    <color name="white_dark">#F0F1F1</color>
-    <color name="white_20">#33FFFFFF</color>
-    <color name="white_30">#4DFFFFFF</color>
-    <color name="white_40">#66FFFFFF</color>
-    <color name="white_60">#99FFFFFF</color>
-    <color name="gray_light">#DEE0E4</color>
-    <color name="gray">#B9B9B9</color>
-    <color name="gray_camera">#979797</color>
-    <color name="gray_hint">#ADADAD</color>
-    <color name="gray_data">#777A81</color>
-    <color name="gray_80">#CC878787</color>
-    <color name="gray_40">#66878787</color>
-    <color name="orange">#FC8F24</color>
-    <color name="red">#D91515</color>
-    <color name="gradient_red_start">#99EC0000</color>
-    <color name="gradient_red_end">#80EC0000</color>
-    <color name="gradient_blue_start">#995B43ED</color>
-    <color name="gradient_blue_end">#806651E8</color>
-
-    <color name="transparent">#00000000</color>
-    <color name="transparent_60">#99000000</color>
-    <color name="red_variant">#EC0000</color>
-    <color name="red_variant_light">#FF5858</color>
-    <color name="blue_variant">#5B43ED</color>
-    <color name="blue_variant_light">#9386E6</color>
-    <color name="red_vote">#BB0203</color>
-    <color name="blue_vote">#412BBB</color>
+    <color name="black">#FF000000</color>
 </resources>
