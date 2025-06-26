@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,7 +43,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,17 +62,23 @@ import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.StageHandler
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.StageParticipantMode
 import com.amazon.ivs.stagesrealtimecompose.ui.components.AvatarImage
 import com.amazon.ivs.stagesrealtimecompose.ui.components.ButtonCircleImage
+import com.amazon.ivs.stagesrealtimecompose.ui.components.DesktopPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.GradientBox
 import com.amazon.ivs.stagesrealtimecompose.ui.components.HeartBox
+import com.amazon.ivs.stagesrealtimecompose.ui.components.LandscapePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
+import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.TextInput
 import com.amazon.ivs.stagesrealtimecompose.ui.components.VoteButton
+import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
 import com.amazon.ivs.stagesrealtimecompose.ui.components.imeOffsetPadding
 import com.amazon.ivs.stagesrealtimecompose.ui.components.thenOptional
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackQuaternary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackQuinary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BluePrimary
+import com.amazon.ivs.stagesrealtimecompose.ui.theme.GreenSecondary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.InterTertiary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.RedPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
@@ -108,31 +114,38 @@ private fun StageOverlayContent(
                 if (size == IntSize.Zero) {
                     size = it
                 }
-            }
+            },
+        contentAlignment = Alignment.BottomCenter,
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.Bottom
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxPortraitWidth(),
         ) {
-            ChatPanel(
-                avatar = stage.selfAvatar,
-                messages = messages,
-                parentSize = size,
-                isVSMode = stage.isVSMode,
-                modifier = Modifier.weight(1f)
-            )
-            SideMenu(
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                ChatPanel(
+                    avatar = stage.selfAvatar,
+                    messages = messages,
+                    parentSize = size,
+                    isVSMode = stage.isVSMode,
+                    modifier = Modifier.weight(1f)
+                )
+                SideMenu(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .padding(bottom = 20.dp),
+                    stage = stage
+                )
+            }
+            HeartBox(
                 modifier = Modifier
-                    .padding(end = 12.dp)
-                    .padding(bottom = 20.dp),
-                stage = stage
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 32.dp, end = 32.dp)
             )
         }
-        HeartBox(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 32.dp, end = 32.dp)
-        )
     }
 }
 
@@ -255,7 +268,7 @@ private fun ChatPanel(
                     size = 42.dp
                 )
                 TextInput(
-                    modifier = Modifier.height(42.dp),
+                    modifier = Modifier.heightIn(min = 42.dp),
                     hint = stringResource(R.string.say_something),
                     text = message,
                     backgroundColor = BlackQuaternary.copy(alpha = 0.4f),
@@ -472,17 +485,76 @@ private fun ChatItem(
     }
 }
 
-@Preview
+@PortraitPreview
 @Composable
-private fun StageOverlayContentPreview() {
+private fun OverlayPortraitVS() {
+    StageOverlayContentPreview(
+        mode = StageParticipantMode.VS
+    )
+}
+
+@PortraitPreview
+@Composable
+private fun OverlayPortraitNone() {
+    StageOverlayContentPreview()
+}
+
+@SquarePreview
+@Composable
+private fun OverlaySquareVS() {
+    StageOverlayContentPreview(
+        mode = StageParticipantMode.VS
+    )
+}
+
+@SquarePreview
+@Composable
+private fun OverlaySquareNone() {
+    StageOverlayContentPreview()
+}
+
+@LandscapePreview
+@Composable
+private fun OverlayLandscapeVS() {
+    StageOverlayContentPreview(
+        mode = StageParticipantMode.VS
+    )
+}
+
+@LandscapePreview
+@Composable
+private fun OverlayLandscapeNone() {
+    StageOverlayContentPreview()
+}
+
+@DesktopPreview
+@Composable
+private fun OverlayDesktopVS() {
+    StageOverlayContentPreview(
+        mode = StageParticipantMode.VS
+    )
+}
+
+@DesktopPreview
+@Composable
+private fun OverlayDesktopNone() {
+    StageOverlayContentPreview()
+}
+
+@Composable
+private fun StageOverlayContentPreview(
+    mode: StageParticipantMode = StageParticipantMode.None,
+) {
     PreviewSurface {
-        Box {
+        Box(
+            modifier = Modifier.background(color = GreenSecondary)
+        ) {
             GradientBox(isUp = true)
             GradientBox(isUp = false)
             StageOverlayContent(
                 stage = mockVideoStage.copy(
-                    mode = StageParticipantMode.VS,
-                    selfAvatar = getNewUserAvatar()
+                    mode = mode,
+                    selfAvatar = getNewUserAvatar(),
                 ),
                 messages = mockMessages
             )

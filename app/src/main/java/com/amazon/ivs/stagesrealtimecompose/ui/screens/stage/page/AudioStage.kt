@@ -8,25 +8,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -37,7 +37,14 @@ import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.AudioSeat
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.Stage
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.StageHandler
 import com.amazon.ivs.stagesrealtimecompose.ui.components.AvatarImage
+import com.amazon.ivs.stagesrealtimecompose.ui.components.DesktopPreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.LandscapePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
+import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
+import com.amazon.ivs.stagesrealtimecompose.ui.components.isSquareOrLandscapeSize
+import com.amazon.ivs.stagesrealtimecompose.ui.screens.stage.common.StageOverlay
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.OrangePrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
 
@@ -69,19 +76,26 @@ private fun AudioStageContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = topPadding + 70.dp),
+                .padding(top = topPadding + 70.dp)
+                .padding(horizontal = 26.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            LazyVerticalGrid(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp),
-                columns = GridCells.Fixed(4)
-            ) {
-                items(items = stage.seats, key = { it.id }) { seat ->
-                    AudioSeat(
-                        seat = seat
-                    )
+            var index = 0
+            repeat(3) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxPortraitWidth(
+                            maxWidth = 550.dp
+                        ),
+                ) {
+                    repeat(4) {
+                        AudioSeat(
+                            seat = stage.seats[index++],
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(ratio = if (isSquareOrLandscapeSize()) 1f else 0.87f),
+                        )
+                    }
                 }
             }
         }
@@ -90,14 +104,15 @@ private fun AudioStageContent(
 
 @Composable
 private fun AudioSeat(
-    seat: AudioSeat
+    seat: AudioSeat,
+    modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(12.dp)
+    var size by remember { mutableStateOf(DpSize.Unspecified) }
 
     Box(
-        modifier = Modifier
-            .padding(4.dp)
-            .requiredSize(DpSize(width = 80.dp, height = 94.dp))
+        modifier = modifier
+            .padding(5.dp)
             .background(
                 color = WhitePrimary.copy(alpha = 0.2f),
                 shape = shape
@@ -115,9 +130,7 @@ private fun AudioSeat(
                 onClick = {
                     StageHandler.joinAudioRoom(seat.id)
                 }
-            )
-            .padding(horizontal = 10.dp)
-            .padding(vertical = 16.dp),
+            ),
     ) {
         Crossfade(
             modifier = Modifier.fillMaxSize(),
@@ -125,23 +138,34 @@ private fun AudioSeat(
         ) { isEmpty ->
             Box(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
-                when (isEmpty) {
-                    true -> {
-                        Image(
-                            modifier = Modifier.size(36.dp),
-                            painter = painterResource(R.drawable.ic_plus),
-                            contentDescription = stringResource(R.string.dsc_join_seat)
-                        )
-                    }
-                    else -> {
-                        AvatarImage(
-                            avatar = seat.userAvatar,
-                            isSpeaking = seat.isSpeaking,
-                            isMuted = seat.isMuted,
-                            size = 60.dp
-                        )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(0.7f)
+                        .onSizeChanged {
+                            size = DpSize(it.width.dp, it.height.dp)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (isEmpty) {
+                        true -> {
+                            Image(
+                                modifier = Modifier.size(36.dp),
+                                painter = painterResource(R.drawable.ic_plus),
+                                contentDescription = stringResource(R.string.dsc_join_seat)
+                            )
+                        }
+
+                        else -> {
+                            AvatarImage(
+                                modifier = Modifier.aspectRatio(1f),
+                                avatar = seat.userAvatar,
+                                isSpeaking = seat.isSpeaking,
+                                isMuted = seat.isMuted,
+                                size = minOf(size.width, size.height)
+                            )
+                        }
                     }
                 }
             }
@@ -149,13 +173,44 @@ private fun AudioSeat(
     }
 }
 
-@Preview
+@PortraitPreview
+@Composable
+private fun AudioPortrait() {
+    AudioStageContentPreview()
+}
+
+@SquarePreview
+@Composable
+private fun AudioSquare() {
+    AudioStageContentPreview()
+}
+
+@LandscapePreview
+@Composable
+private fun AudioLandscape() {
+    AudioStageContentPreview()
+}
+
+@DesktopPreview
+@Composable
+private fun AudioDesktop() {
+    AudioStageContentPreview()
+}
+
 @Composable
 private fun AudioStageContentPreview() {
     PreviewSurface {
-        AudioStageContent(
-            stage = mockAudioStage,
-            topPadding = 0.dp
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            AudioStageContent(
+                stage = mockAudioStage,
+                topPadding = 0.dp
+            )
+            StageOverlay(
+                stage = mockAudioStage
+            )
+        }
     }
 }

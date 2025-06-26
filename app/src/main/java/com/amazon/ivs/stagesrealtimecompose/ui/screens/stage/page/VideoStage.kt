@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +52,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -68,10 +68,18 @@ import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.Stage
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.StageManager
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.StageParticipantMode
 import com.amazon.ivs.stagesrealtimecompose.ui.components.CameraOffBox
+import com.amazon.ivs.stagesrealtimecompose.ui.components.DesktopPreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.LandscapePreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.LatencyText
 import com.amazon.ivs.stagesrealtimecompose.ui.components.LoadingSpinner
+import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
 import com.amazon.ivs.stagesrealtimecompose.ui.components.ScoreBar
+import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
+import com.amazon.ivs.stagesrealtimecompose.ui.components.isLandscape
+import com.amazon.ivs.stagesrealtimecompose.ui.components.isSquareOrLandscapeSize
+import com.amazon.ivs.stagesrealtimecompose.ui.screens.stage.common.StageOverlay
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackSecondary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.InterTertiary
@@ -94,7 +102,8 @@ private fun VideoStageContent(
     stage: Stage,
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         AnimatedVisibility(
@@ -110,29 +119,39 @@ private fun VideoStageContent(
             )
         }
         Crossfade(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxPortraitWidth()
+                .fillMaxHeight(),
             targetState = stage.mode
         ) { mode ->
-            when (mode) {
-                StageParticipantMode.Guest -> StageVideoGuest(
-                    stage = stage,
-                )
-                StageParticipantMode.VS -> StageVideoVS(
-                    stage = stage,
-                )
-                StageParticipantMode.None -> {
-                    val isPreview = LocalInspectionMode.current
-                    val stream = when {
-                        isPreview -> ActiveVideoStream()
-                        else -> StageManager.activeCreatorStream.collectAsStateWithLifecycle().value
-                    }
-
-                    StageVideoBox(
-                        modifier = Modifier.fillMaxSize(),
-                        isCreator = true,
-                        stream = stream,
-                        showStats = false,
+            Box(
+                modifier = Modifier
+                    .fillMaxPortraitWidth()
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                when (mode) {
+                    StageParticipantMode.Guest -> StageVideoGuest(
+                        stage = stage,
                     )
+                    StageParticipantMode.VS -> StageVideoVS(
+                        stage = stage,
+                    )
+                    StageParticipantMode.None -> {
+                        val isPreview = LocalInspectionMode.current
+                        val stream = when {
+                            isPreview -> ActiveVideoStream()
+                            else -> StageManager.activeCreatorStream.collectAsStateWithLifecycle().value
+                        }
+                        StageVideoBox(
+                            modifier = Modifier
+                                .widthIn(max = 551.dp)
+                                .fillMaxHeight(),
+                            isCreator = true,
+                            stream = stream,
+                            showStats = false,
+                        )
+                    }
                 }
             }
         }
@@ -151,7 +170,9 @@ private fun BoxScope.StageVideoGuest(
     }
 
     StageVideoBox(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .widthIn(max = 551.dp)
+            .fillMaxHeight(),
         isCreator = true,
         stream = creatorStream,
         showStats = false,
@@ -201,14 +222,33 @@ private fun BoxScope.StageVideoGuest(
 private fun StageVideoVS(
     stage: Stage,
 ) {
+    val isLandscape = isLandscape()
+
     Box(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.widthIn(max = if (isLandscape) 889.dp else 551.dp)
             .fillMaxHeight(0.7f),
         contentAlignment = Alignment.Center
     ) {
-        var participantSize by remember { mutableStateOf(IntSize.Zero) }
-        var fullSize by remember { mutableStateOf(IntSize.Zero) }
-        val ratio = 16f / 25f
+        val isPreview = LocalInspectionMode.current
+        var participantSize by remember {
+            mutableStateOf(
+                value = if (isPreview) {
+                    IntSize(width = 187, height = 551)
+                } else {
+                    IntSize.Zero
+                }
+            )
+        }
+        var fullSize by remember {
+            mutableStateOf(
+                value = if (isPreview) {
+                    IntSize(width = 1102, height = 551)
+                } else {
+                    IntSize.Zero
+                }
+            )
+        }
+        val ratio = if (isLandscape) 1f / 1f else 16f / 25f
         val fullWidth = fullSize.width.ldp
         val participantHeight = participantSize.height.ldp
 
@@ -229,11 +269,13 @@ private fun StageVideoVS(
                         isPreview -> ActiveVideoStream()
                         else -> StageManager.activeCreatorStream.collectAsStateWithLifecycle().value
                     }
+                    val radius = if (isSquareOrLandscapeSize()) 20.dp else 0.dp
+                    val shape = RoundedCornerShape(radius)
 
                     StageVideoBox(
                         modifier = Modifier.weight(1f)
                             .aspectRatio(ratio = ratio)
-                            .background(BlackSecondary),
+                            .background(color = BlackSecondary, shape = shape),
                         isCreator = true,
                         stream = creatorStream,
                         showStats = true,
@@ -241,7 +283,7 @@ private fun StageVideoVS(
                     Box(
                         modifier = Modifier.weight(1f)
                             .aspectRatio(ratio = ratio)
-                            .background(BlackSecondary)
+                            .background(color = BlackSecondary, shape = shape),
                     ) {
                         LoadingSpinner(
                             modifier = Modifier.align(Alignment.Center),
@@ -387,6 +429,8 @@ private fun StageVideoBox(
     stream: ActiveVideoStream,
 ) {
     var video by remember { mutableStateOf(stream.video) }
+    val radius = if (isSquareOrLandscapeSize()) 20.dp else 0.dp
+    val shape = RoundedCornerShape(radius)
 
     LaunchedEffect(key1 = Unit) {
         while (video == null) {
@@ -417,7 +461,9 @@ private fun StageVideoBox(
             exit = fadeOut()
         ) {
             AndroidView(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .clip(shape)
+                    .fillMaxSize(),
                 factory = { context ->
                     FrameLayout(context).apply {
                         layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
@@ -433,6 +479,16 @@ private fun StageVideoBox(
                     (preview.parent as? ViewGroup)?.removeView(preview)
                     layout.addView(preview)
                 }
+            )
+        }
+        if (LocalInspectionMode.current) {
+            AsyncImage(
+                modifier = Modifier
+                    .clip(shape)
+                    .fillMaxHeight(),
+                model = R.drawable.bg_camera_preview,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
             )
         }
 
@@ -452,10 +508,11 @@ private fun VSCounter(
 ) {
     val time by VSHandler.scoreTimer.collectAsStateWithLifecycle()
     val showTimer by VSHandler.showTimer.collectAsStateWithLifecycle()
+    val isPreview = LocalInspectionMode.current
 
     AnimatedVisibility(
         modifier = modifier.fillMaxWidth(),
-        visible = showTimer,
+        visible = showTimer || isPreview,
         enter = fadeIn(),
         exit = fadeOut()
     ) {
@@ -465,7 +522,7 @@ private fun VSCounter(
         ) {
             Text(
                 modifier = Modifier
-                    .width(52.dp)
+                    .widthIn(min = 52.dp)
                     .background(color = BlackPrimary, shape = RoundedCornerShape(100))
                     .padding(
                         horizontal = 9.dp,
@@ -473,6 +530,7 @@ private fun VSCounter(
                     ),
                 text = time.toTimerSeconds(),
                 textAlign = TextAlign.Center,
+                maxLines = 1,
                 style = InterTertiary.copy(
                     fontWeight = FontWeight.W500,
                     fontSize = 13.sp
@@ -482,21 +540,75 @@ private fun VSCounter(
     }
 }
 
-@Preview
+@PortraitPreview
 @Composable
 private fun VideoStageNonePreview() {
     VideoStageContentPreview(mode = StageParticipantMode.None)
 }
 
-@Preview
+@PortraitPreview
 @Composable
 private fun VideoStageGuestPreview() {
     VideoStageContentPreview(mode = StageParticipantMode.Guest)
 }
 
-@Preview
+@PortraitPreview
 @Composable
 private fun VideoStageVSPreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.VS)
+}
+
+@SquarePreview
+@Composable
+private fun VideoStageNoneSquarePreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.None)
+}
+
+@SquarePreview
+@Composable
+private fun VideoStageGuestSquarePreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.Guest)
+}
+
+@SquarePreview
+@Composable
+private fun VideoStageVSSquarePreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.VS)
+}
+
+@LandscapePreview
+@Composable
+private fun VideoStageNoneLandscapePreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.None)
+}
+
+@LandscapePreview
+@Composable
+private fun VideoStageGuestLandscapePreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.Guest)
+}
+
+@LandscapePreview
+@Composable
+private fun VideoStageVSLandscapePreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.VS)
+}
+
+@DesktopPreview
+@Composable
+private fun VideoStageNoneDesktopPreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.None)
+}
+
+@DesktopPreview
+@Composable
+private fun VideoStageGuestDesktopPreview() {
+    VideoStageContentPreview(mode = StageParticipantMode.Guest)
+}
+
+@DesktopPreview
+@Composable
+private fun VideoStageVSDesktopPreview() {
     VideoStageContentPreview(mode = StageParticipantMode.VS)
 }
 
@@ -507,12 +619,20 @@ private fun VideoStageContentPreview(
     PreviewSurface(
         background = BlackSecondary
     ) {
-        VideoStageContent(
-            stage = mockVideoStage.copy(
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            val stage = mockVideoStage.copy(
                 mode = mode,
-                isCreatorVideoOff = false,
-                isParticipantVideoOff = true
-            ),
-        )
+            )
+
+            VideoStageContent(
+                stage = stage,
+            )
+            StageOverlay(
+                stage = stage,
+            )
+        }
     }
 }

@@ -8,7 +8,9 @@ import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.RTCData
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.Stage
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.StageParticipantMode
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.stage.StageType
-import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
+import com.amazon.ivs.stagesrealtimecompose.ui.theme.AvatarUnknownBottom
+import com.amazon.ivs.stagesrealtimecompose.ui.theme.AvatarUnknownLeft
+import com.amazon.ivs.stagesrealtimecompose.ui.theme.AvatarUnknownRight
 
 private val creatorAvatar = getNewUserAvatar()
 
@@ -33,8 +35,10 @@ val mockAudioStage = Stage(
     stageId = "audio",
     isLoading = false,
     creatorAvatar = creatorAvatar,
+    selfAvatar = getNewUserAvatar(),
     type = StageType.Audio,
-    seats = mockSeats
+    seats = mockSeats,
+    isStageParticipant = true,
 )
 
 val mockStages = listOf(
@@ -79,8 +83,8 @@ val mockRTCData = RTCData(
 )
 
 val unknownAvatar = UserAvatar(
-    colorLeft = WhitePrimary.copy(alpha = 0.2f).toHexA(),
-    colorRight = WhitePrimary.copy(alpha = 0.2f).toHexA(),
-    colorBottom = WhitePrimary.copy(alpha = 0.2f).toHexA(),
+    colorLeft = AvatarUnknownLeft.toHexA(),
+    colorRight = AvatarUnknownRight.toHexA(),
+    colorBottom = AvatarUnknownBottom.toHexA(),
     hasBorder = true
 )

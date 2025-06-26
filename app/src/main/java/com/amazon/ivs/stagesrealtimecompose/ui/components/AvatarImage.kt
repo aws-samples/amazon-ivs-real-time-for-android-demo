@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +25,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.amazon.ivs.stagesrealtimecompose.R
 import com.amazon.ivs.stagesrealtimecompose.core.common.extensions.toHex
 import com.amazon.ivs.stagesrealtimecompose.core.common.getNewUserAvatar
@@ -35,7 +33,6 @@ import com.amazon.ivs.stagesrealtimecompose.core.handlers.UserAvatar
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.GrayQuaternary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.OrangePrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.RedPrimary
-import com.amazon.ivs.stagesrealtimecompose.ui.theme.RobotoPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
 
 @Composable
@@ -46,7 +43,6 @@ fun AvatarImage(
     isMuted: Boolean = false,
     isSpeaking: Boolean = false,
 ) {
-    val isUnknown = avatar == null
     val currentAvatar = avatar ?: unknownAvatar
     val hasBorder = currentAvatar.hasBorder
 
@@ -110,19 +106,6 @@ fun AvatarImage(
                     colorFilter = ColorFilter.tint(color = RedPrimary),
                     contentScale = ContentScale.Inside,
                     contentDescription = null
-                )
-            }
-            AnimatedVisibility(
-                modifier = Modifier.align(Alignment.Center),
-                visible = isUnknown,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Text(
-                    text = "?",
-                    style = RobotoPrimary,
-                    color = WhitePrimary,
-                    fontSize = 32.sp,
                 )
             }
         }

@@ -1,11 +1,16 @@
 package com.amazon.ivs.stagesrealtimecompose.ui.components
 
+import android.annotation.SuppressLint
+import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -13,12 +18,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+
+val isPortrait @Composable get() = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
 
 fun Modifier.unClickable() = composed {
     clickable(
@@ -81,4 +90,40 @@ fun Modifier.imeOffsetPadding(
             y= -finalPaddingPx.roundToInt()
         )
     }
+}
+
+@SuppressLint("ConfigurationScreenWidthHeight")
+fun Modifier.fillMaxPortraitWidth(
+    maxWidth: Dp? = null,
+) = composed {
+    if (isPortrait) {
+        fillMaxWidth()
+    } else {
+        val configuration = LocalConfiguration.current
+        var portraitWidth = configuration.screenHeightDp.dp
+        if (maxWidth != null) portraitWidth = portraitWidth.coerceAtMost(maxWidth)
+        width(portraitWidth)
+    }
+}
+
+@SuppressLint("ConfigurationScreenWidthHeight")
+@Composable
+fun isSquareOrLandscapeSize(): Boolean {
+    if (isPortrait) return false
+
+    val configuration = LocalConfiguration.current
+    val width = configuration.screenWidthDp.dp
+    val height = configuration.screenHeightDp.dp
+    return width >= height
+}
+
+@SuppressLint("ConfigurationScreenWidthHeight")
+@Composable
+fun isLandscape(): Boolean {
+    if (isPortrait) return false
+
+    val configuration = LocalConfiguration.current
+    val width = configuration.screenWidthDp.dp
+    val height = configuration.screenHeightDp.dp
+    return width > height
 }

@@ -4,7 +4,15 @@
         <item>@font/inter</item>
         <item>@font/inter_black</item>
         <item>@font/inter_bold</item>
+        <item>@font/inter_extrabold</item>
+        <item>@font/inter_light</item>
+        <item>@font/inter_medium</item>
+        <item>@font/inter_semibold</item>
         <item>@font/roboto</item>
+        <item>@font/roboto_black</item>
+        <item>@font/roboto_bold</item>
+        <item>@font/roboto_light</item>
+        <item>@font/roboto_medium</item>
         <item>@font/roboto_mono</item>
     </array>
 </resources>
