@@ -7,12 +7,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -117,10 +114,7 @@ fun DialogContainerPreview() {
     PreviewSurface {
         DialogOverlay {
             DialogContainer {
-                Text(
-                    text = "Test",
-                    modifier = Modifier.fillMaxWidth().height(200.dp)
-                )
+                JoinStageDialog()
             }
         }
     }

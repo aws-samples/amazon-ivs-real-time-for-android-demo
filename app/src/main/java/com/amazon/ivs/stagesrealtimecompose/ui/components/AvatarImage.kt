@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -134,7 +135,6 @@ private fun AvatarImagePreview() {
                     size = boxSizeSmall
                 )
             }
-
             Box(
                 modifier = Modifier.size(boxSizeLarge).background(RedPrimary)
             ) {
@@ -149,7 +149,6 @@ private fun AvatarImagePreview() {
                     size = boxSizeLarge,
                 )
             }
-
             Box(
                 modifier = Modifier.size(boxSizeLarge).background(RedPrimary)
             ) {
@@ -160,14 +159,27 @@ private fun AvatarImagePreview() {
                     size = boxSizeLarge,
                 )
             }
-
             Box(
-                modifier = Modifier.size(boxSizeLarge).background(RedPrimary)
+                modifier = Modifier.size(boxSizeLarge)
             ) {
                 AvatarImage(
                     avatar = null,
                     size = boxSizeLarge,
                 )
+            }
+            Box(
+                modifier = Modifier.size(112.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(0.7f)
+                ) {
+                    AvatarImage(
+                        avatar = null,
+                        size = 72.dp,
+                    )
+                }
             }
         }
     }

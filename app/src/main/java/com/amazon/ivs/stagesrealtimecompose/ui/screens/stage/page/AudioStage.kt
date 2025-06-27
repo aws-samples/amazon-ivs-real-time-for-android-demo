@@ -25,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.amazon.ivs.stagesrealtimecompose.R
@@ -64,6 +66,8 @@ private fun AudioStageContent(
     stage: Stage,
     topPadding: Dp
 ) {
+    val paddingExtra = if (isSquareOrLandscapeSize()) 36.dp else 70.dp
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -71,12 +75,12 @@ private fun AudioStageContent(
             modifier = Modifier.fillMaxSize(),
             model = R.drawable.bg_audio_stage,
             contentDescription = null,
-            contentScale = ContentScale.FillBounds
+            contentScale = ContentScale.Crop
         )
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = topPadding + 70.dp)
+                .padding(top = topPadding + paddingExtra)
                 .padding(horizontal = 26.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -107,8 +111,18 @@ private fun AudioSeat(
     seat: AudioSeat,
     modifier: Modifier = Modifier,
 ) {
+    val isPreview = LocalInspectionMode.current
     val shape = RoundedCornerShape(12.dp)
-    var size by remember { mutableStateOf(DpSize.Unspecified) }
+    var size by remember {
+        mutableStateOf(
+            value = if (isPreview) {
+                IntSize(width = 150, height = 150)
+            } else {
+                IntSize.Zero
+            }
+        )
+    }
+    val seatSize = LocalDensity.current.run { minOf(size.width.toDp(), size.height.toDp()) }
 
     Box(
         modifier = modifier
@@ -143,9 +157,7 @@ private fun AudioSeat(
                 Box(
                     modifier = Modifier
                         .fillMaxSize(0.7f)
-                        .onSizeChanged {
-                            size = DpSize(it.width.dp, it.height.dp)
-                        },
+                        .onSizeChanged { size = it },
                     contentAlignment = Alignment.Center
                 ) {
                     when (isEmpty) {
@@ -163,7 +175,7 @@ private fun AudioSeat(
                                 avatar = seat.userAvatar,
                                 isSpeaking = seat.isSpeaking,
                                 isMuted = seat.isMuted,
-                                size = minOf(size.width, size.height)
+                                size = seatSize
                             )
                         }
                     }
