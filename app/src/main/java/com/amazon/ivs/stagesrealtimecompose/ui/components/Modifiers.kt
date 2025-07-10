@@ -1,7 +1,6 @@
 package com.amazon.ivs.stagesrealtimecompose.ui.components
 
 import android.annotation.SuppressLint
-import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,14 +19,17 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
+import timber.log.Timber
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
-val isPortrait @Composable get() = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+private const val SQUARE_SHAPE_DELTA_PX = 100
 
 fun Modifier.unClickable() = composed {
     clickable(
@@ -96,7 +98,7 @@ fun Modifier.imeOffsetPadding(
 fun Modifier.fillMaxPortraitWidth(
     maxWidth: Dp? = null,
 ) = composed {
-    if (isPortrait) {
+    if (isPortrait()) {
         fillMaxWidth()
     } else {
         val configuration = LocalConfiguration.current
@@ -106,24 +108,14 @@ fun Modifier.fillMaxPortraitWidth(
     }
 }
 
-@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
-fun isSquareOrLandscapeSize(): Boolean {
-    if (isPortrait) return false
-
-    val configuration = LocalConfiguration.current
-    val width = configuration.screenWidthDp.dp
-    val height = configuration.screenHeightDp.dp
-    return width >= height
+fun isSquareOrLandscape(): Boolean {
+    val size = LocalWindowInfo.current.containerSize
+    val isSquare = abs(size.width - size.height) < SQUARE_SHAPE_DELTA_PX
+    val isLandscapeSize = size.width >= size.height
+    Timber.d("Container size: $size, is square: $isSquare, is landscape: $isLandscapeSize")
+    return isSquare || isLandscapeSize
 }
 
-@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
-fun isLandscape(): Boolean {
-    if (isPortrait) return false
-
-    val configuration = LocalConfiguration.current
-    val width = configuration.screenWidthDp.dp
-    val height = configuration.screenHeightDp.dp
-    return width > height
-}
+fun isPortrait() = !isSquareOrLandscape()

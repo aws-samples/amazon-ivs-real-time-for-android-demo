@@ -45,7 +45,7 @@ import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
 import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
-import com.amazon.ivs.stagesrealtimecompose.ui.components.isSquareOrLandscapeSize
+import com.amazon.ivs.stagesrealtimecompose.ui.components.isSquareOrLandscape
 import com.amazon.ivs.stagesrealtimecompose.ui.screens.stage.common.StageOverlay
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.OrangePrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
@@ -66,7 +66,7 @@ private fun AudioStageContent(
     stage: Stage,
     topPadding: Dp
 ) {
-    val paddingExtra = if (isSquareOrLandscapeSize()) 36.dp else 70.dp
+    val paddingExtra = if (isSquareOrLandscape()) 36.dp else 70.dp
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -97,7 +97,7 @@ private fun AudioStageContent(
                             seat = stage.seats[index++],
                             modifier = Modifier
                                 .weight(1f)
-                                .aspectRatio(ratio = if (isSquareOrLandscapeSize()) 1f else 0.87f),
+                                .aspectRatio(ratio = if (isSquareOrLandscape()) 1f else 0.87f),
                         )
                     }
                 }

@@ -79,7 +79,7 @@ fun ScoreBar(
             easing = EaseOut
         )
     )
-    val radius = if (isSquareOrLandscapeSize()) 20.dp else 0.dp
+    val radius = if (isSquareOrLandscape()) 20.dp else 0.dp
     val shape = RoundedCornerShape(radius)
 
     LaunchedEffect(key1 = score) {

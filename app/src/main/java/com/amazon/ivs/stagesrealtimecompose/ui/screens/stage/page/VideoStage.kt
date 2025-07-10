@@ -77,8 +77,7 @@ import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
 import com.amazon.ivs.stagesrealtimecompose.ui.components.ScoreBar
 import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
-import com.amazon.ivs.stagesrealtimecompose.ui.components.isLandscape
-import com.amazon.ivs.stagesrealtimecompose.ui.components.isSquareOrLandscapeSize
+import com.amazon.ivs.stagesrealtimecompose.ui.components.isSquareOrLandscape
 import com.amazon.ivs.stagesrealtimecompose.ui.screens.stage.common.StageOverlay
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackSecondary
@@ -222,7 +221,7 @@ private fun BoxScope.StageVideoGuest(
 private fun StageVideoVS(
     stage: Stage,
 ) {
-    val isLandscape = isLandscape()
+    val isLandscape = isSquareOrLandscape()
 
     Box(
         modifier = Modifier.widthIn(max = if (isLandscape) 889.dp else 551.dp)
@@ -269,7 +268,7 @@ private fun StageVideoVS(
                         isPreview -> ActiveVideoStream()
                         else -> StageManager.activeCreatorStream.collectAsStateWithLifecycle().value
                     }
-                    val radius = if (isSquareOrLandscapeSize()) 20.dp else 0.dp
+                    val radius = if (isSquareOrLandscape()) 20.dp else 0.dp
                     val shape = RoundedCornerShape(radius)
 
                     StageVideoBox(
@@ -429,7 +428,7 @@ private fun StageVideoBox(
     stream: ActiveVideoStream,
 ) {
     var video by remember { mutableStateOf(stream.video) }
-    val radius = if (isSquareOrLandscapeSize()) 20.dp else 0.dp
+    val radius = if (isSquareOrLandscape()) 20.dp else 0.dp
     val shape = RoundedCornerShape(radius)
 
     LaunchedEffect(key1 = Unit) {
