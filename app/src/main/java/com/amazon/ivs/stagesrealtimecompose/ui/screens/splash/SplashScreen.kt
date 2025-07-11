@@ -44,7 +44,8 @@ fun SplashScreen() {
             modifier = Modifier.fillMaxSize(),
             painter = painterResource(R.drawable.bg_splash),
             contentDescription = null,
-            contentScale = ContentScale.FillBounds
+            contentScale = ContentScale.FillHeight,
+            alignment = Alignment.TopStart,
         )
 
         Column(
