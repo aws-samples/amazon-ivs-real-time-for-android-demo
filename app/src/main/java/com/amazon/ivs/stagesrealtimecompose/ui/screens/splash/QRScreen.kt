@@ -37,7 +37,11 @@ import com.amazon.ivs.stagesrealtimecompose.R
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.Destination
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.NavigationHandler
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.UserHandler
+import com.amazon.ivs.stagesrealtimecompose.ui.components.DesktopPreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.LandscapePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
+import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.GreenPrimary
 import com.google.mlkit.vision.barcode.BarcodeScanner
@@ -140,19 +144,17 @@ private fun CameraOverlay() {
                 val strokeWidthPx = with(density) { 3.dp.toPx() }
                 val cornerColor = GreenPrimary
 
-                val cutoutWidth = size.width - paddingPx * 2
-                val cutoutHeight = size.height / 3
-
-                val left = paddingPx
-                val top = (size.height - cutoutHeight) / 2
-                val right = size.width - paddingPx
-                val bottom = top + cutoutHeight
+                val cutoutSize = minOf(size.width, size.height).coerceAtMost(1500f) - paddingPx * 2
+                val left = (size.width - cutoutSize) / 2
+                val top = (size.height - cutoutSize) / 2
+                val right = left + cutoutSize
+                val bottom = top + cutoutSize
 
                 drawRect(color = BlackPrimary.copy(alpha = 0.4f))
                 drawRect(
                     color = Color.Transparent,
                     topLeft = Offset(left, top),
-                    size = Size(cutoutWidth, cutoutHeight),
+                    size = Size(cutoutSize, cutoutSize),
                     blendMode = BlendMode.DstIn
                 )
                 drawLine(
@@ -228,7 +230,30 @@ private fun processImageProxy(barcodeScanner: BarcodeScanner, imageProxy: ImageP
     }
 }
 
-@androidx.compose.ui.tooling.preview.Preview
+@PortraitPreview
+@Composable
+private fun CameraPortrait() {
+    CameraOverlayPreview()
+}
+
+@SquarePreview
+@Composable
+private fun CameraSquare() {
+    CameraOverlayPreview()
+}
+
+@LandscapePreview
+@Composable
+private fun CameraLandscape() {
+    CameraOverlayPreview()
+}
+
+@DesktopPreview
+@Composable
+private fun CameraDesktop() {
+    CameraOverlayPreview()
+}
+
 @Composable
 private fun CameraOverlayPreview() {
     PreviewSurface {

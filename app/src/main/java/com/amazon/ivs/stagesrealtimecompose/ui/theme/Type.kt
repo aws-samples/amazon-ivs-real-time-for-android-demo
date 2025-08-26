@@ -15,9 +15,13 @@ private val Inter @Composable get() = if (LocalInspectionMode.current) {
     FontFamily.SansSerif
 } else {
     FontFamily(
-        Font(R.font.inter, FontWeight.Normal),
-        Font(R.font.inter_bold, FontWeight.Bold),
-        Font(R.font.inter_black, FontWeight.Black),
+        Font(resId = R.font.inter, weight = FontWeight.Normal),
+        Font(resId = R.font.inter_black, weight = FontWeight.Black),
+        Font(resId = R.font.inter_bold, weight = FontWeight.Bold),
+        Font(resId = R.font.inter_extrabold, weight = FontWeight.ExtraBold),
+        Font(resId = R.font.inter_light, weight = FontWeight.Light),
+        Font(resId = R.font.inter_medium, weight = FontWeight.Medium),
+        Font(resId = R.font.inter_semibold, weight = FontWeight.SemiBold),
     )
 }
 
@@ -25,7 +29,11 @@ private val Roboto @Composable get() = if (LocalInspectionMode.current) {
     FontFamily.SansSerif
 } else {
     FontFamily(
-        Font(R.font.roboto, FontWeight.Normal),
+        Font(resId = R.font.roboto, weight = FontWeight.Normal),
+        Font(resId = R.font.roboto_black, weight = FontWeight.Black),
+        Font(resId = R.font.roboto_bold, weight = FontWeight.Bold),
+        Font(resId = R.font.roboto_light, weight = FontWeight.Light),
+        Font(resId = R.font.roboto_medium, weight = FontWeight.Medium),
     )
 }
 
@@ -45,9 +53,9 @@ val InterPrimary @Composable get() = TextStyle(
 )
 
 val InterSecondary @Composable get() = InterPrimary.copy(
-    color = GrayTertiary,
-    fontWeight = FontWeight.W600,
-    fontSize = 16.sp
+    color = WhitePrimary,
+    fontWeight = FontWeight.W400,
+    fontSize = 15.sp
 )
 
 val InterTertiary @Composable get() = InterPrimary.copy(
@@ -83,7 +91,8 @@ val RobotoPrimary @Composable get() = TextStyle(
     color = BlackSecondary,
     fontFamily = Roboto,
     fontSize = 22.sp,
-    fontWeight = FontWeight.W800
+    fontWeight = FontWeight.W800,
+    letterSpacing = 0.sp,
 )
 
 val RobotoMonoPrimary @Composable get() = TextStyle(

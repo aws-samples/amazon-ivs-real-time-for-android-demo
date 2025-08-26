@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,7 +31,12 @@ import com.amazon.ivs.stagesrealtimecompose.core.handlers.StageDestinationType
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.User
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.UserHandler
 import com.amazon.ivs.stagesrealtimecompose.ui.components.ButtonImage
+import com.amazon.ivs.stagesrealtimecompose.ui.components.DesktopPreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.LandscapePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
+import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.BlackSecondary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.GrayPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.GraySecondary
@@ -64,7 +68,7 @@ private fun LandingScreenContent(
         modifier = Modifier
             .fillMaxSize()
             .background(GrayPrimary)
-            .padding(top = innerPadding.calculateTopPadding())
+            .padding(top = innerPadding.calculateTopPadding()),
     ) {
         Row(
             modifier = Modifier.padding(
@@ -99,7 +103,8 @@ private fun LandingScreenContent(
         }
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
+                .align(Alignment.BottomCenter)
+                .fillMaxPortraitWidth()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 30.dp)
         ) {
@@ -147,6 +152,7 @@ private fun LandingButton(
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(18.dp)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -167,12 +173,35 @@ private fun LandingButton(
             ),
             text = text,
             style = RobotoPrimary,
-            color = BlackSecondary
+            color = BlackSecondary,
         )
     }
 }
 
-@Preview
+@PortraitPreview
+@Composable
+private fun LandingPortrait() {
+    LandingScreenContentPreview()
+}
+
+@SquarePreview
+@Composable
+private fun LandingSquare() {
+    LandingScreenContentPreview()
+}
+
+@LandscapePreview
+@Composable
+private fun LandingLandscape() {
+    LandingScreenContentPreview()
+}
+
+@DesktopPreview
+@Composable
+private fun LandingDesktop() {
+    LandingScreenContentPreview()
+}
+
 @Composable
 private fun LandingScreenContentPreview() {
     PreviewSurface {

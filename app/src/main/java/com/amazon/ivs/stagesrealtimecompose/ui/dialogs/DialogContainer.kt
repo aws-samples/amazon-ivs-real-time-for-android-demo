@@ -7,12 +7,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,13 +19,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.amazon.ivs.stagesrealtimecompose.core.common.ANIMATION_DURATION_NORMAL
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.NavigationHandler
+import com.amazon.ivs.stagesrealtimecompose.ui.components.DesktopPreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.LandscapePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
+import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
 import com.amazon.ivs.stagesrealtimecompose.ui.components.unClickable
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.GrayPrimary
 import kotlin.math.roundToInt
@@ -74,7 +75,7 @@ fun DialogContainer(
         modifier = modifier
             .alpha(alpha)
             .offset { offset }
-            .fillMaxWidth()
+            .fillMaxPortraitWidth()
             .unClickable()
             .background(color = background, shape = dialogShape)
             .padding(horizontal = 16.dp)
@@ -84,15 +85,37 @@ fun DialogContainer(
     }
 }
 
-@Preview
+@PortraitPreview
+@Composable
+private fun DialogPortrait() {
+    DialogContainerPreview()
+}
+
+@LandscapePreview
+@Composable
+private fun DialogLandscape() {
+    DialogContainerPreview()
+}
+
+@SquarePreview
+@Composable
+private fun DialogSquare() {
+    DialogContainerPreview()
+}
+
+@DesktopPreview
+@Composable
+private fun DialogDesktop() {
+    DialogContainerPreview()
+}
+
 @Composable
 fun DialogContainerPreview() {
     PreviewSurface {
-        DialogContainer {
-            Text(
-                text = "Test",
-                modifier = Modifier.fillMaxWidth().height(100.dp)
-            )
+        DialogOverlay {
+            DialogContainer {
+                JoinStageDialog()
+            }
         }
     }
 }

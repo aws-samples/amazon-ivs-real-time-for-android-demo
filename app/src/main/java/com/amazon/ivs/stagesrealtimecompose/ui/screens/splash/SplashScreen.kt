@@ -14,14 +14,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.amazon.ivs.stagesrealtimecompose.R
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.DialogDestination
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.NavigationHandler
 import com.amazon.ivs.stagesrealtimecompose.ui.components.ButtonPrimary
+import com.amazon.ivs.stagesrealtimecompose.ui.components.DesktopPreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.LandscapePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.PortraitPreview
 import com.amazon.ivs.stagesrealtimecompose.ui.components.PreviewSurface
+import com.amazon.ivs.stagesrealtimecompose.ui.components.SquarePreview
+import com.amazon.ivs.stagesrealtimecompose.ui.components.fillMaxPortraitWidth
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.InterPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.OrangePrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
@@ -34,17 +38,20 @@ fun SplashScreen() {
             .drawBehind {
                 drawRect(color = OrangePrimary)
             },
-        contentAlignment = Alignment.BottomStart
+        contentAlignment = Alignment.BottomCenter,
     ) {
         Image(
             modifier = Modifier.fillMaxSize(),
             painter = painterResource(R.drawable.bg_splash),
             contentDescription = null,
-            contentScale = ContentScale.FillBounds
+            contentScale = ContentScale.FillHeight,
+            alignment = Alignment.TopStart,
         )
 
         Column(
-            modifier = Modifier.padding(horizontal = 22.dp)
+            modifier = Modifier
+                .fillMaxPortraitWidth()
+                .padding(horizontal = 22.dp)
         ) {
             Text(
                 text = stringResource(R.string.welcome_to_ivs_real_time),
@@ -65,7 +72,30 @@ fun SplashScreen() {
     }
 }
 
-@Preview
+@PortraitPreview
+@Composable
+private fun SplashPortrait() {
+    SplashScreenPreview()
+}
+
+@SquarePreview
+@Composable
+private fun SplashSquare() {
+    SplashScreenPreview()
+}
+
+@LandscapePreview
+@Composable
+private fun SplashLandscape() {
+    SplashScreenPreview()
+}
+
+@DesktopPreview
+@Composable
+private fun SplashDesktop() {
+    SplashScreenPreview()
+}
+
 @Composable
 private fun SplashScreenPreview() {
     PreviewSurface {

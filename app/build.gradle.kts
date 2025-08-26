@@ -17,12 +17,12 @@ fun getVersionCode(): Int {
 
 android {
     namespace = "com.amazon.ivs.stagesrealtimecompose"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.amazon.ivs.stagesrealtimecompose"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.${getVersionCode()}"
     }

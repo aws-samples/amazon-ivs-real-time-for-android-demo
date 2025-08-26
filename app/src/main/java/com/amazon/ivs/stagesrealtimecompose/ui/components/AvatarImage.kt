@@ -8,12 +8,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +26,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.amazon.ivs.stagesrealtimecompose.R
 import com.amazon.ivs.stagesrealtimecompose.core.common.extensions.toHex
 import com.amazon.ivs.stagesrealtimecompose.core.common.getNewUserAvatar
@@ -35,7 +34,6 @@ import com.amazon.ivs.stagesrealtimecompose.core.handlers.UserAvatar
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.GrayQuaternary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.OrangePrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.RedPrimary
-import com.amazon.ivs.stagesrealtimecompose.ui.theme.RobotoPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
 
 @Composable
@@ -46,7 +44,6 @@ fun AvatarImage(
     isMuted: Boolean = false,
     isSpeaking: Boolean = false,
 ) {
-    val isUnknown = avatar == null
     val currentAvatar = avatar ?: unknownAvatar
     val hasBorder = currentAvatar.hasBorder
 
@@ -112,19 +109,6 @@ fun AvatarImage(
                     contentDescription = null
                 )
             }
-            AnimatedVisibility(
-                modifier = Modifier.align(Alignment.Center),
-                visible = isUnknown,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Text(
-                    text = "?",
-                    style = RobotoPrimary,
-                    color = WhitePrimary,
-                    fontSize = 32.sp,
-                )
-            }
         }
     }
 }
@@ -151,7 +135,6 @@ private fun AvatarImagePreview() {
                     size = boxSizeSmall
                 )
             }
-
             Box(
                 modifier = Modifier.size(boxSizeLarge).background(RedPrimary)
             ) {
@@ -166,7 +149,6 @@ private fun AvatarImagePreview() {
                     size = boxSizeLarge,
                 )
             }
-
             Box(
                 modifier = Modifier.size(boxSizeLarge).background(RedPrimary)
             ) {
@@ -177,14 +159,27 @@ private fun AvatarImagePreview() {
                     size = boxSizeLarge,
                 )
             }
-
             Box(
-                modifier = Modifier.size(boxSizeLarge).background(RedPrimary)
+                modifier = Modifier.size(boxSizeLarge)
             ) {
                 AvatarImage(
                     avatar = null,
                     size = boxSizeLarge,
                 )
+            }
+            Box(
+                modifier = Modifier.size(112.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(0.7f)
+                ) {
+                    AvatarImage(
+                        avatar = null,
+                        size = 72.dp,
+                    )
+                }
             }
         }
     }
