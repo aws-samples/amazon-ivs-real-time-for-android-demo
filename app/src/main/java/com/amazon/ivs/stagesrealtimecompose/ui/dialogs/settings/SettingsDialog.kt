@@ -15,10 +15,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.amazon.ivs.stagesrealtimecompose.R
 import com.amazon.ivs.stagesrealtimecompose.core.handlers.NavigationHandler
+import com.amazon.ivs.stagesrealtimecompose.core.handlers.SettingsHandler
+import com.amazon.ivs.stagesrealtimecompose.core.handlers.SettingsState
 import com.amazon.ivs.stagesrealtimecompose.ui.components.BitrateSlider
 import com.amazon.ivs.stagesrealtimecompose.ui.components.ButtonPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.components.ButtonSwitch
@@ -29,16 +30,14 @@ import com.amazon.ivs.stagesrealtimecompose.ui.theme.RobotoPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
 
 @Composable
-fun SettingsDialog(
-    settingsViewModel: SettingsViewModel = hiltViewModel()
-) {
-    val state by settingsViewModel.state.collectAsStateWithLifecycle()
+fun SettingsDialog() {
+    val state by SettingsHandler.state.collectAsStateWithLifecycle()
 
     SettingsDialogContent(
         state = state,
-        onVideoStatsEnabledChanged = settingsViewModel::changeVideoStatsEnabled,
-        onSimulcastEnabledChanged = settingsViewModel::changeSimulcastEnabled,
-        onBitrateChanged = settingsViewModel::changeBitrate
+        onVideoStatsEnabledChanged = SettingsHandler::changeVideoStatsEnabled,
+        onSimulcastEnabledChanged = SettingsHandler::changeSimulcastEnabled,
+        onBitrateChanged = SettingsHandler::changeBitrate,
     )
 }
 

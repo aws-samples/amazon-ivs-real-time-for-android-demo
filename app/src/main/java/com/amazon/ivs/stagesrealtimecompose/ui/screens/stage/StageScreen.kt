@@ -266,7 +266,10 @@ private fun StageHeader(
 ) {
     Box(
         modifier = Modifier
-            .padding(top = topPadding)
+            .padding(
+                top = topPadding,
+                start = 16.dp
+            )
             .fillMaxWidth()
             .height(42.dp)
     ) {

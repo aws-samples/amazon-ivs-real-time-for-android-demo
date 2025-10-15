@@ -1,17 +1,12 @@
-package com.amazon.ivs.stagesrealtimecompose.ui.dialogs.settings
+package com.amazon.ivs.stagesrealtimecompose.core.handlers
 
-import androidx.lifecycle.ViewModel
 import com.amazon.ivs.stagesrealtimecompose.core.common.BITRATE_DEFAULT
-import com.amazon.ivs.stagesrealtimecompose.core.handlers.PreferencesHandler
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
 import kotlin.math.roundToInt
 
-@HiltViewModel
-class SettingsViewModel @Inject constructor() : ViewModel() {
+object SettingsHandler {
     private val _state = MutableStateFlow(
         SettingsState(
             videoStatsEnabled = PreferencesHandler.videoStatsEnabled,

@@ -1,7 +1,5 @@
 package com.amazon.ivs.stagesrealtimecompose.core.common.extensions
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,11 +18,4 @@ fun launchMain(block: suspend CoroutineScope.() -> Unit) = mainScope.launch(
 fun launchDefault(block: suspend CoroutineScope.() -> Unit) = defaultScope.launch(
     context = CoroutineExceptionHandler { _, e -> Timber.w(e, "Coroutine failed: ${e.localizedMessage}") },
     block = block
-)
-
-fun ViewModel.launch(block: suspend CoroutineScope.() -> Unit) = viewModelScope.launch(
-    context = CoroutineExceptionHandler { _, e ->
-        Timber.e(e, "Coroutine failed: ${e.localizedMessage}")
-    },
-    block = block,
 )

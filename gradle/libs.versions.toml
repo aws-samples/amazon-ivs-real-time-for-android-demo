@@ -1,21 +1,19 @@
 [versions]
-activityCompose = "1.10.1"
-agp = "8.11.1"
+activityCompose = "1.11.0"
+agp = "8.13.0"
 barcodeScanning = "17.3.0"
-cameraCamera2 = "1.4.2"
+cameraCamera2 = "1.5.1"
 coil = "3.3.0"
-composeBom = "2025.07.00"
+composeBom = "2025.10.00"
 converterGson = "3.0.0"
-coreKtx = "1.16.0"
-hilt = "2.57"
-hiltNavigationCompose = "1.2.0"
-ivsBroadcast = "1.32.2"
+coreKtx = "1.17.0"
+ivsBroadcast = "1.35.0"
 ivsChatMessaging = "1.1.0"
-kotlin = "2.1.21"
+kotlin = "2.2.20"
 kotlinxSerializationJson = "1.9.0"
-ksp = "2.1.21-2.0.2"
-lifecycleRuntimeKtx = "2.9.2"
-okhttp = "5.1.0"
+ksp = "2.2.20-2.0.2"
+lifecycleRuntimeKtx = "2.9.4"
+okhttp = "5.2.1"
 retrofit-converter = "1.0.0"
 timber = "5.0.1"
 
@@ -26,7 +24,6 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCamera2" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
@@ -37,8 +34,6 @@ barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref =
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coil" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
-hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 ivs-broadcast = { module = "com.amazonaws:ivs-broadcast", version.ref = "ivsBroadcast" }
 ivs-chat-messaging = { module = "com.amazonaws:ivs-chat-messaging", version.ref = "ivsChatMessaging" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
@@ -49,7 +44,6 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

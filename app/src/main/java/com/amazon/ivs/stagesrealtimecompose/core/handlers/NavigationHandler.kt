@@ -28,6 +28,17 @@ object NavigationHandler {
     val isDialogClosing = _isDialogClosing.asStateFlow()
     val isLoading = _isLoading.asStateFlow()
 
+    init {
+        val session = PreferencesHandler.session
+        Timber.d("Current session: $session")
+        val startDestination = if (session != null) {
+            Destination.Landing()
+        } else {
+            Destination.Splash
+        }
+        goTo(startDestination)
+    }
+
     fun signOut() {
         hideError()
         closeDialog()
