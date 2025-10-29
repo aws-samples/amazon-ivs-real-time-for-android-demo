@@ -155,7 +155,7 @@ object StageHandler {
         ChatHandler.clearMessages()
         StageManager.stopPublishing()
         val stages = _stages.value.map { it.copy() }.toMutableList()
-        stages.removeAt(currentStageIndex)
+        if (stages.isNotEmpty()) stages.removeAt(currentStageIndex)
         _stages.update { stages }
 
         val nextStageIndex = (currentStageIndex - 1).coerceAtLeast(0)

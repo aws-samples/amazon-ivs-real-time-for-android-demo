@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import timber.log.Timber
 
+/**
+ * Might as well be a singleton ViewModel that you inject in all composables with hilt, but given the nature
+ * of the project and the fact that there won't be any unit tests - this is much more convenient.
+ * Also - no need to include the Navigation lib (v3? v4? Who know what version it has at this point at reading)
+ * and this gives us much more flexibility and full control over every aspect of the navigation.
+ */
 object NavigationHandler {
     private val _backStack = mutableListOf<Destination>()
     private val _destination = MutableStateFlow<Destination>(Destination.None)
