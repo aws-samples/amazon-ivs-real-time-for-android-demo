@@ -7,7 +7,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -53,13 +52,9 @@ import com.amazon.ivs.stagesrealtimecompose.ui.screens.stage.StageScreen
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.GrayPrimary
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.StagesRealtimeComposeTheme
 import com.amazon.ivs.stagesrealtimecompose.ui.theme.WhitePrimary
-import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val viewModel by viewModels<MainViewModel>()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.Transparent.toArgb()),
@@ -74,9 +69,9 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .navigationBarsPadding()
                 ) { innerPadding ->
-                    val destination by viewModel.destination.collectAsStateWithLifecycle()
-                    val dialogDestination by viewModel.dialogDestination.collectAsStateWithLifecycle()
-                    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+                    val destination by NavigationHandler.destination.collectAsStateWithLifecycle()
+                    val dialogDestination by NavigationHandler.dialogDestination.collectAsStateWithLifecycle()
+                    val isLoading by NavigationHandler.isLoading.collectAsStateWithLifecycle()
 
                     BackHandler(onBack = NavigationHandler::goBack)
                     ChangeSystemBarIcons(useDarkIcons = destination.useDarkIcons)

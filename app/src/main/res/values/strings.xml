@@ -25,7 +25,6 @@
     <string name="err_customer_code">Invalid code</string>
     <string name="err_delete_stage">Failed to delete stage</string>
     <string name="err_get_stages">Failed to get stages</string>
-    <string name="err_join_chat">Failed to join chat</string>
     <string name="err_join_stage">Failed to join stage</string>
     <string name="err_kick_participant">Failed to remove guest</string>
     <string name="err_leave_stage">Failed to leave stage</string>

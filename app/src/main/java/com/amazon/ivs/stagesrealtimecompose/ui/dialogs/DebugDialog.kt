@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -220,7 +219,7 @@ private fun DebugDialogContent(
 }
 
 @Composable
-private fun ColumnScope.DebugColumn(
+private fun DebugColumn(
     rtcData: RTCData?,
     isVideoStage: Boolean,
     showDivider: Boolean = true,
@@ -330,7 +329,7 @@ private fun DebugDialogPreview(
     isParticipating: Boolean,
     isVideoStage: Boolean,
     rtcData: RTCData = RTCData(),
-    rtcDataList: List<RTCData> = emptyList<RTCData>()
+    rtcDataList: List<RTCData> = emptyList()
 ) {
     PreviewSurface(
         background = WhitePrimary

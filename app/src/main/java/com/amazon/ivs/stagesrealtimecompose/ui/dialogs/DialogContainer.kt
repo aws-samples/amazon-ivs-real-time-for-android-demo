@@ -36,8 +36,8 @@ import kotlin.math.roundToInt
 
 @Composable
 fun DialogContainer(
-    background: Color = GrayPrimary,
     modifier: Modifier = Modifier,
+    background: Color = GrayPrimary,
     content: @Composable BoxScope.() -> Unit
 ) {
     val dialogShape = RoundedCornerShape(28.dp)

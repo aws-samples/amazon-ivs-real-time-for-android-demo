@@ -6,7 +6,3 @@ import androidx.compose.ui.platform.LocalDensity
 val Int.ldp @Composable get() = with (LocalDensity.current) {
     toDp()
 }
-
-val Float.ldp @Composable get() = with (LocalDensity.current) {
-    toDp()
-}

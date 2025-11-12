@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
-import timber.log.Timber
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -42,8 +41,8 @@ fun Modifier.unClickable() = composed {
 
 fun Modifier.unScrollable(
     enabled: Boolean
-): Modifier = composed {
-    if (!enabled) return@composed this
+): Modifier {
+    if (!enabled) return this
     val connection = object : NestedScrollConnection {
         override suspend fun onPostFling(
             consumed: Velocity,
@@ -61,7 +60,7 @@ fun Modifier.unScrollable(
             source: NestedScrollSource
         ) = available
     }
-    nestedScroll(connection = connection)
+    return nestedScroll(connection = connection)
 }
 
 inline fun Modifier.thenOptional(
@@ -75,18 +74,19 @@ inline fun Modifier.thenOptional(
     }
 }
 
+@Composable
 fun Modifier.imeOffsetPadding(
     enabled: Boolean = true,
     bottomOffset: Dp = 36.dp
-) = composed {
-    if (!enabled) return@composed this
+): Modifier {
+    if (!enabled) return this
 
     val imeBottomPx = WindowInsets.ime.getBottom(LocalDensity.current)
     val navigationBarBottomPx = WindowInsets.navigationBars.getBottom(LocalDensity.current)
     val reductionPx = with(LocalDensity.current) { bottomOffset.toPx() }
     val finalPaddingPx = (imeBottomPx - navigationBarBottomPx - reductionPx).coerceAtLeast(0f)
 
-    offset {
+    return offset {
         IntOffset(
             x = 0,
             y= -finalPaddingPx.roundToInt()
@@ -113,7 +113,6 @@ fun isSquareOrLandscape(): Boolean {
     val size = LocalWindowInfo.current.containerSize
     val isSquare = abs(size.width - size.height) < SQUARE_SHAPE_DELTA_PX
     val isLandscapeSize = size.width >= size.height
-    Timber.d("Container size: $size, is square: $isSquare, is landscape: $isLandscapeSize")
     return isSquare || isLandscapeSize
 }
 
